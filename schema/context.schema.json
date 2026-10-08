@@ -12,6 +12,14 @@
       "pattern": "^0\\.\\d+\\.\\d+$"
     },
     "oni": {
+      "$ref": "#/$defs/index"
+    },
+    "roni": {
+      "$ref": "#/$defs/index"
+    }
+  },
+  "$defs": {
+    "index": {
       "type": "object",
       "required": [
         "season",
@@ -67,6 +75,9 @@
               }
             }
           }
+        },
+        "stale": {
+          "type": "boolean"
         }
       }
     }

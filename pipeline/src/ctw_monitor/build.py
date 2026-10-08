@@ -247,20 +247,35 @@ def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
 
 
 def build_context(cfg, out: Path, now, last_good_dir=None) -> dict:
-    """NOAA CPC ONI for the context panel. Context only; fails soft like any source."""
+    """NOAA CPC ONI and RONI for the context panel. Context only; fails soft like any source.
+    An index that fails keeps its last good value (marked stale) when there is one."""
     product = "context.json"
-    try:
-        oni = context.fetch_oni(cfg["context"]["oni_url"])
-    except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8)
-        msg = scrub(f"{type(e).__name__}: {e}")[:300]
-        log(f"noaa_oni: failed: {msg}")
-        status = {"id": "noaa_oni", "status": "failed", "message": msg}
+    lg_path = Path(last_good_dir) / product if last_good_dir else None
+    last = json.loads(lg_path.read_text(encoding="utf-8")) if lg_path and lg_path.exists() else {}
+    fetchers = {"oni": (context.fetch_oni, cfg["context"]["oni_url"]),
+                "roni": (context.fetch_roni, cfg["context"]["roni_url"])}
+    got, errors = {}, {}
+    for key, (fn, url) in fetchers.items():
+        try:
+            got[key] = {**fn(url), "fetched": iso(now)}
+            log(f"noaa_cpc {key}: {got[key]['season']} {got[key]['year']} "
+                f"{got[key]['anomaly_c']:+.2f}")
+        except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8)
+            errors[key] = scrub(f"{type(e).__name__}: {e}")[:140]
+            log(f"noaa_cpc {key}: failed: {errors[key]}")
+            if key in last:
+                got[key] = {**last[key], "stale": True}
+    status = {"id": "noaa_oni", "status": "ok" if not errors else "stale",
+              "last_success": iso(now)}
+    if errors:
+        status["message"] = "; ".join(f"{k.upper()}: {v}" for k, v in errors.items())[:300]
+    if "oni" not in got:                    # the product needs ONI (context.schema.json)
+        status.update(status="failed")
+        status.pop("last_success")
         _fallback(product, out, last_good_dir, status)
         return status
-    write_json({"schema_version": SCHEMA_VERSION, "oni": {**oni, "fetched": iso(now)}},
-               out / product)
-    log(f"noaa_oni: {oni['season']} {oni['year']} {oni['anomaly_c']:+.2f}")
-    return {"id": "noaa_oni", "status": "ok", "last_success": iso(now)}
+    write_json({"schema_version": SCHEMA_VERSION, **got}, out / product)
+    return status
 
 
 def run_build(out_dir, cache_dir=".cache/raw", last_good_dir=None, full=False, days=400,
