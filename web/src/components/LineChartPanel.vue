@@ -9,16 +9,23 @@ const props = defineProps({
   title: { type: String, required: true },
   product: { type: Object, required: true },
   yLabel: { type: String, default: '' },
+  stations: { type: Object, default: null },     // stations.json, for names and depths
 })
 const el = ref(null)
 let chart = null
 let off = null
 const DASH = [[], [6, 3], [2, 2], [8, 3, 2, 3]]
 
+function label(id) {
+  const s = props.stations?.stations?.find((x) => x.id === id)
+  if (!s) return id.replace(/_ctd$/, '').toUpperCase()
+  return Number.isFinite(s.depth_m) ? `${s.name} ${s.depth_m} m` : s.name
+}
+
 function datasets() {
   const cols = seriesColors()
   return props.product.stations.map((id, i) => ({
-    label: id.replace(/_ctd$/, '').toUpperCase(),
+    label: label(id),
     data: props.product.values[id],
     borderColor: cols[i % cols.length],
     borderDash: DASH[i % DASH.length],

@@ -45,6 +45,20 @@ schedule is visible on the page within a day.
 - A programming error fails the run; the previous deployment stays live.
 - Optional: a step that opens or updates a GitHub issue when any source is FAULT.
 
+## ONC token for local runs
+
+Store it once in Windows Credential Manager (encrypted per user, never in a file); the
+pipeline reads it when `ONC_API_TOKEN` is not set:
+
+```powershell
+conda activate ctw-monitor
+python -m keyring set ctw-monitor ONC_API_TOKEN     # prompts without echo
+python -m keyring del ctw-monitor ONC_API_TOKEN     # to remove it
+```
+
+Actions keeps using the repository secret. Do not use `conda env config vars` for the
+token: it is stored in plain text in the environment folder.
+
 ## Local mode (if tokens cannot live on GitHub)
 
 On an ONC Windows machine with the `ctw-monitor` conda env:

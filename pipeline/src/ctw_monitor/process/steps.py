@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from ..vendor import ctw_analysis as ca
-from . import tides
+from . import drift, tides
 
 RHO_G = 1025.0 * 9.81          # Pa per m of water
 PA_PER_CM = RHO_G / 100.0      # ~100.6 Pa per cm
@@ -104,23 +104,74 @@ def anomaly_doy(s: pd.Series, baseline: dict | None) -> pd.Series:
     raise NotImplementedError
 
 
+def detide(s_cm: pd.Series, constants: dict | None) -> tuple[pd.Series, dict]:
+    """Despike and detide an hourly series in cm (frozen constants, else a window fit)."""
+    tide = tides.predict(constants, s_cm.index) if constants else None
+    clean, nrem = despike(s_cm, tide)
+    if tide is not None:
+        src = f"frozen constants ({constants['start'][:10]} to {constants['end'][:10]})"
+        return clean - tide, {"despiked": nrem, "tide_source": src}
+    resid = clean - ca.harmonic_fit(clean)[0]
+    return resid, {"despiked": nrem, "tide_source": "window fit (no frozen constants)"}
+
+
 def gauge_chain(sea_level_cm: pd.Series, p_hpa: pd.Series | None,
                 constants: dict | None) -> tuple[pd.Series, dict]:
     """Hourly sea level (cm, regular hourly index) -> hourly low-passed anomaly (cm) and meta.
 
     despike -> detide (frozen constants, else a window fit) -> IB (if pressure) -> Godin ->
     minus window mean."""
-    meta = {}
-    tide = tides.predict(constants, sea_level_cm.index) if constants else None
-    clean, nrem = despike(sea_level_cm, tide)
-    meta["despiked"] = nrem
-    if tide is not None:
-        resid = clean - tide
-        meta["tide_source"] = f"frozen constants ({constants['start'][:10]} to {constants['end'][:10]})"
-    else:
-        resid = clean - ca.harmonic_fit(clean)[0]
-        meta["tide_source"] = "window fit (no frozen constants)"
+    resid, meta = detide(sea_level_cm, constants)
     if p_hpa is not None and p_hpa.notna().any():
         resid = ib_correct_gauge(resid, p_hpa)
     lp = godin(resid)
     return anomaly_doy(lp, None), meta
+
+
+def remove_linear_drift(s: pd.Series) -> pd.Series:
+    """Least-squares straight line removed over the window (open decision, see METHODS)."""
+    ok = s.notna().to_numpy()
+    if ok.sum() < 2:
+        return s
+    x = (s.index - s.index[0]).total_seconds().to_numpy() / 86400.0
+    a, b = np.polyfit(x[ok], s.to_numpy()[ok], 1)
+    return s - (a * x + b)
+
+
+def bottom_pressure_chain(pressure_pa: dict[str, pd.Series], constants: dict,
+                          section_ids: list[str], ref_ids: list[str],
+                          drift_models: dict[str, dict] | None = None,
+                          devices: dict[str, str] | None = None,
+                          ) -> tuple[dict[str, pd.Series], dict[str, dict]]:
+    """Hourly seafloor pressure (Pa, common hourly index) -> hourly low-passed, basin-referenced
+    anomaly in cm of water for each section gauge.
+
+    Pa -> cm of water (rho g) -> despike + detide -> minus the basin reference (rule 4: mean of
+    the de-meaned basin gauges, before filtering) -> drift removed -> Godin -> minus window
+    mean. Never IB-corrected (rule 2): a BPR already sees only the departure from the
+    inverse-barometer response.
+
+    Drift: the frozen per-deployment model (process/drift.py) when one exists for the device
+    now deployed; otherwise a straight line over the window, and meta says which."""
+    drift_models, devices = drift_models or {}, devices or {}
+    detided, meta = {}, {}
+    for k, s in pressure_pa.items():
+        detided[k], meta[k] = detide(s / PA_PER_CM, constants.get(k))
+    refs = [k for k in ref_ids if k in detided and detided[k].notna().any()]
+    ref = basin_reference(detided, refs)          # raises if no basin gauge has data
+    out = {}
+    for k in section_ids:
+        if k not in detided or detided[k].isna().all():
+            continue
+        x = detided[k] - detided[k].mean() - ref
+        model = drift_models.get(k)
+        if model and model.get("deviceCode") == devices.get(k):
+            x = x - drift.evaluate(model, x.index)
+            how = (f"frozen exp + linear fit ({model['fit_from']} to {model['fit_to']}, "
+                   f"{model['slope_cm_per_yr']} cm/yr)")
+        else:
+            x = remove_linear_drift(x)
+            how = "linear over window (no frozen drift model for this device)"
+        out[k] = anomaly_doy(godin(x), None)
+        meta[k] |= {"basin_reference": refs, "drift": how}
+    return out, meta

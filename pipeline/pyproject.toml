@@ -22,6 +22,7 @@ tides = ["utide>=0.3"]                 # monthly tidal-constant refit only
 era5  = ["xarray>=2024.1", "netCDF4"]  # weekly ERA5 IB / wind forcing only
 apt   = ["obspy>=1.4"]                 # optional CBC27 APT from EarthScope FDSN
 dev   = ["pytest>=8", "ruff>=0.5"]
+local = ["keyring>=25"]                # ONC token from the OS credential store
 
 [project.scripts]
 ctw-monitor = "ctw_monitor.cli:main"

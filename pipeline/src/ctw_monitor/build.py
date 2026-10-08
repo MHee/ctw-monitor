@@ -1,7 +1,7 @@
 """Nightly build: fetch -> process -> write, failing soft per source (CLAUDE.md rule 8).
 
-Sea level (M1) is built from the tide-gauge sources. Bottom pressure and temperature (M2)
-are still stubs: they record each source as failed and reuse last-good products if present.
+Sea level from the tide gauges (M1); NEPTUNE bottom pressure and slope temperature from
+ONC (M2). A failed source keeps its last good product, marked stale.
 """
 from __future__ import annotations
 
@@ -18,12 +18,13 @@ import pandas as pd
 
 from . import SCHEMA_VERSION, __version__
 from .config import alongshore_km, enabled, load_config
-from .process.steps import gauge_chain, pressure_for
+from .process.steps import bottom_pressure_chain, gauge_chain, pressure_for
 from .products.sealevel import hovmoller_product, stations_product
 from .products.validate import validate_dir
 from .products.writer import iso, timeseries_product, write_json
 from .sources import onc, tide_gauges
 from .sources.cache import RawCache
+from .sources.onc import scrub
 
 DEFAULT_TIDES = Path(".cache/tidal_constants.json")
 
@@ -34,13 +35,6 @@ SEALEVEL_SOURCES = [
     ("ioc_slsmf", tide_gauges.fetch_ioc, "ioc"),
     ("uhslc_fast", tide_gauges.fetch_uhslc, "uhslc"),
 ]
-
-# product file -> list of (source id, fetch callable, config section, provider filter)
-PLAN = {
-    "bottom_pressure.json": [("onc_bpr", onc.fetch_bottom_pressure, "bottom_pressure", None)],
-    "temperature.json": [("onc_ctd", onc.fetch_temperature, "temperature", None)],
-}
-
 
 def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
@@ -54,6 +48,13 @@ def load_constants(path: Path | str | None) -> dict:
     return d.get("stations", {})
 
 
+def load_drift(path: Path | str | None) -> dict:
+    """Station id -> frozen bottom-pressure drift model (tides-fit output), or {}."""
+    if not path or not Path(path).exists():
+        return {}
+    return json.loads(Path(path).read_text(encoding="utf-8")).get("drift", {})
+
+
 def _last_good_series(last_good_dir, product: str) -> tuple[dict[str, pd.Series], dict]:
     """6-hourly series and meta from a previously deployed timeseries product."""
     if not last_good_dir or not (Path(last_good_dir) / product).exists():
@@ -62,6 +63,108 @@ def _last_good_series(last_good_dir, product: str) -> tuple[dict[str, pd.Series]
     idx = pd.date_range(pd.Timestamp(d["t0"]), periods=d["n"], freq=pd.Timedelta(seconds=d["dt_s"]))
     vals = {k: pd.Series(np.array(v, dtype=float), index=idx) for k, v in d["values"].items()}
     return vals, d.get("meta", {})
+
+
+def fetch_source(sid, fn, stations, start, now, cache) -> tuple[object | None, dict]:
+    """Run one fetcher; return (SourceResult or None, manifest status entry). Never raises
+    for data problems (rule 8); messages are scrubbed of tokens before they reach the site."""
+    t = time.time()
+    try:
+        r = fn(stations, start, now, cache=cache)
+    except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8), record why
+        if not isinstance(e, (NotImplementedError, RuntimeError)):
+            traceback.print_exc()
+        msg = scrub(f"{type(e).__name__}: {e}")[:300]
+        log(f"{sid}: failed after {time.time() - t:.0f}s: {msg}")
+        return None, {"id": sid, "status": "failed", "message": msg}
+    log(f"{sid}: {len(r.series)}/{len(stations)} stations in {time.time() - t:.0f}s"
+        + (f"; errors {r.errors}" if r.errors else ""))
+    st = {"id": sid, "status": "ok", "last_success": iso(now)}
+    if r.last_observation is not None:
+        st["last_observation"] = iso(r.last_observation)
+    if r.errors:
+        st["message"] = scrub(f"{len(r.errors)} of {len(stations)} stations missing: "
+                              + "; ".join(f"{k}: {v}" for k, v in r.errors.items()))[:300]
+    return r, st
+
+
+def _fallback(product: str, out: Path, last_good_dir, status: dict) -> None:
+    """Rule 8: reuse the whole last good product and mark the source stale."""
+    if last_good_dir and (Path(last_good_dir) / product).exists():
+        shutil.copy2(Path(last_good_dir) / product, out / product)
+        status["status"] = "stale"
+
+
+def build_bottom_pressure(cfg, out: Path, start, now, cache, constants, last_good_dir=None,
+                          drift_models=None) -> dict:
+    sts = [b for b in enabled(cfg["bottom_pressure"]) if b.get("location_code")]
+    r, status = fetch_source("onc_bpr", onc.fetch_bottom_pressure, sts, start, now, cache)
+    product = "bottom_pressure.json"
+    if r is None:
+        _fallback(product, out, last_good_dir, status)
+        return status
+    hourly = pd.date_range(start.floor("h"), now.floor("h"), freq="1h")
+    idx6 = pd.date_range(start.ceil("6h"), now.floor("6h"), freq="6h")
+    section = [b["id"] for b in sts if b.get("role") == "section"]
+    refs = [b["id"] for b in sts if b.get("role") == "basin_ref"]
+    try:
+        devices = {k: v["devices"][-1]["deviceCode"] for k, v in r.meta.items() if v.get("devices")}
+        series, m = bottom_pressure_chain({k: s.reindex(hourly) for k, s in r.series.items()},
+                                          constants, section, refs, drift_models, devices)
+    except ValueError as e:                       # no basin reference: rule 4 forbids writing
+        status.update(status="failed", message=f"no basin reference: {e}"[:300])
+        _fallback(product, out, last_good_dir, status)
+        return status
+    if not series:
+        status.update(status="failed", message="no section gauge has data")
+        _fallback(product, out, last_good_dir, status)
+        return status
+    values, meta = {}, {}
+    for k in section:
+        if k in series:
+            v = series[k].reindex(idx6)
+            values[k] = v.to_numpy()
+            meta[k] = {**r.meta.get(k, {}), **m[k],
+                       "last_valid": iso(v.last_valid_index()) if v.notna().any() else None}
+    codes = {b["id"]: b["location_code"] for b in sts}
+    used = ", ".join(codes[k] for k in m[next(iter(values))]["basin_reference"])
+    days = round((now - start) / pd.Timedelta(days=1))
+    frozen = [k for k in values if str(meta[k].get("drift", "")).startswith("frozen")]
+    drift_note = ("instrument drift removed (frozen per-deployment fit)" if len(frozen) == len(values)
+                  else f"instrument drift removed (frozen fit at {len(frozen)} of {len(values)} "
+                       f"gauges, linear over the window elsewhere)")
+    proc = (f"Seafloor pressure, hourly, detided (frozen tidal constants), minus the Cascadia Basin "
+            f"reference ({used}), {drift_note}, Godin low-pass, minus the {days}-day mean; "
+            f"cm of water (100.6 Pa/cm); not IB-corrected; 6-hourly")
+    write_json(timeseries_product("bottom_pressure_anomaly", "cm", proc, idx6, values, meta),
+               out / product)
+    return status
+
+
+def build_temperature(cfg, out: Path, start, now, cache, last_good_dir=None) -> dict:
+    sts = enabled(cfg["temperature"])
+    r, status = fetch_source("onc_ctd", onc.fetch_temperature, sts, start, now, cache)
+    product = "temperature.json"
+    if r is None:
+        _fallback(product, out, last_good_dir, status)
+        return status
+    didx = pd.date_range(start.ceil("D"), now.floor("D") - pd.Timedelta(days=1), freq="1D")
+    values, meta = {}, {}
+    for st in sts:
+        k = st["id"]
+        if k not in r.series:
+            continue
+        v = r.series[k].reindex(didx)
+        v = v - v.mean()                           # TODO(M4): minus the day-of-year baseline
+        values[k] = v.to_numpy()
+        meta[k] = {**r.meta.get(k, {}), "depth_m": st["depth_m"],
+                   "last_valid": iso(v.last_valid_index()) if v.notna().any() else None}
+    days = round((now - start) / pd.Timedelta(days=1))
+    proc = (f"CTD temperature, daily mean, minus the {days}-day mean "
+            f"(no day-of-year baseline yet); degC")
+    write_json(timeseries_product("temperature_anomaly", "degC", proc, didx, values, meta,
+                                  ndigits=3), out / product)
+    return status
 
 
 def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
@@ -73,27 +176,13 @@ def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
         sts = [g for g in gauges if g["provider"] == prov]
         if not sts:
             continue
-        t = time.time()
-        try:
-            r = fn(sts, start, now, cache=cache)
-        except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8), record why
-            if not isinstance(e, (NotImplementedError, RuntimeError)):
-                traceback.print_exc()
-            statuses.append({"id": sid, "status": "failed", "message": f"{type(e).__name__}: {e}"[:300]})
+        r, st = fetch_source(sid, fn, sts, start, now, cache)
+        statuses.append(st)
+        if r is None:
             missing.update({g["id"]: sid for g in sts})
-            log(f"{sid}: failed after {time.time() - t:.0f}s: {e}")
             continue
-        log(f"{sid}: {len(r.series)}/{len(sts)} stations in {time.time() - t:.0f}s"
-            + (f"; errors {r.errors}" if r.errors else ""))
         results.append(r)
         missing.update({k: sid for k in r.errors})
-        st = {"id": sid, "status": "ok", "last_success": iso(now)}
-        if r.last_observation is not None:
-            st["last_observation"] = iso(r.last_observation)
-        if r.errors:
-            st["message"] = (f"{len(r.errors)} of {len(sts)} stations missing: "
-                             + "; ".join(f"{k}: {v}" for k, v in r.errors.items()))[:300]
-        statuses.append(st)
 
     hourly = pd.date_range(start.floor("h"), now.floor("h"), freq="1h")
     idx6 = pd.date_range(start.ceil("6h"), now.floor("6h"), freq="6h")
@@ -158,30 +247,12 @@ def run_build(out_dir, cache_dir=".cache/raw", last_good_dir=None, full=False, d
     start = now - pd.Timedelta(days=days)
     cache = RawCache(cache_dir, full=full)
     constants = load_constants(tides_path)
+    drift_models = load_drift(tides_path)
     log(f"tidal constants: {len(constants)} stations from {tides_path}")
     statuses = build_sealevel(cfg, out, start, now, cache, constants, last_good_dir)
-    for product, sources in PLAN.items():
-        results, product_failed = [], False
-        for sid, fn, section, prov in sources:
-            sts = [s for s in enabled(cfg[section]) if prov is None or s.get("provider") == prov]
-            if not sts:
-                continue
-            try:
-                results.append(fn(sts, start, now))
-                statuses.append({"id": sid, "status": "ok", "last_success": iso(now)})
-            except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8), record why
-                product_failed = True
-                statuses.append({"id": sid, "status": "failed", "message": f"{type(e).__name__}: {e}"[:300]})
-                if not isinstance(e, NotImplementedError):
-                    traceback.print_exc()
-        if product_failed or not results:
-            if last_good_dir and (Path(last_good_dir) / product).exists():
-                shutil.copy2(Path(last_good_dir) / product, out / product)
-                for s in statuses:
-                    if s["status"] == "failed" and s["id"] in {x[0] for x in sources}:
-                        s["status"] = "stale"
-            continue
-        # TODO(M2-M3): process results (process/steps.py) and write the product
+    statuses.append(build_bottom_pressure(cfg, out, start, now, cache, constants, last_good_dir,
+                                          drift_models))
+    statuses.append(build_temperature(cfg, out, start, now, cache, last_good_dir))
     manifest = {
         "schema_version": SCHEMA_VERSION, "generated_at": iso(now), "synthetic": False,
         "pipeline": {"version": __version__, "git_sha": os.environ.get("GITHUB_SHA", "local")[:12]},

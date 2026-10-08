@@ -152,6 +152,8 @@ cd web; npm run dev; npm run build; npx vitest run
 - The ONC token as repository secret `ONC_API_TOKEN` is acceptable (public data, no
   write endpoints). Use a token from a regular, non-staff ONC account so the public
   page can only show what any public user can see.
+- Bottom-pressure drift: method B, a frozen exponential + linear fit per deployment,
+  refitted with the tidal constants (2026-10-08; docs/METHODS.md).
 
 ## Open decisions (ask Martin)
 
