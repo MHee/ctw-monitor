@@ -41,3 +41,4 @@ table.events .verdict { white-space: nowrap; }
 .event-mode label { display: inline-flex; align-items: center; gap: .3rem; cursor: pointer; }
 .stale-stations { margin: .5rem 0 0; font-size: .875rem; }
 .range-switch { margin: 0; }
+table.events .sub { display: block; color: var(--muted); font-size: .8125rem; white-space: normal; }

@@ -109,6 +109,20 @@ Defaults accepted by Martin on 2026-10-08, from a test on 399 days of live data
 6. **Propagating** means 1 ≤ speed ≤ 10 m/s, r² ≥ 0.7, and a finite 95 % interval with a
    lower bound > 0.
    Anything else is "not propagating". A negative speed is labelled "southward".
+6a. **Speed detail** (Martin, 2026-10-08, after the Claude for Science review). The speed is
+   an *apparent along-coast speed*: coherent timing along the coast, which a wind-forced
+   response can also produce. Attribution to a free coastal-trapped wave needs the forced
+   model (`ctw_model`). Two checks go with each event:
+   - `speed_loo` is the range of speeds when each gauge in turn is left out. The 95 % t
+     interval assumes independent timing errors, but neighbouring gauges share weather,
+     so that interval is probably too narrow; the leave-one-out range shows how much one
+     gauge, often the north end, sets the speed.
+   - `segments` repeats the fit within each coast segment, bounded by capes, when it has
+     at least 3 of the event's gauges: California (to Cape Mendocino, −888 km), Oregon and
+     Washington (to Cape Flattery, +1 km), British Columbia, and Mexico and Central America.
+     For the 17 May 2026 minimum, California shows no clear lag (r² 0.11), Oregon and
+     Washington gives 1.9 m/s [1.3, 3.7], and British Columbia shows no clear lag (r² 0.27).
+     The single 3.8 m/s line averages over forced and propagating stretches.
 7. **Major** means a median prominence ≥ 15 cm (about 11 events a year, the top 15 %).
 8. Both segments use the same rules (Martin, 2026-10-08). The Mexico segment therefore
    shows no events until the IOC gauges up to Puerto Vallarta have enough history.

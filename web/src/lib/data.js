@@ -122,3 +122,17 @@ export function staleStations(products, names = {}, now = Date.now(), days = 3) 
   }
   return out
 }
+
+// One-line summary of an event's per-segment fits (events.json 0.5.0), e.g.
+// "Calif. no clear lag · Ore.–Wash. 1.9 m/s · B.C. no clear lag".
+const SEG_SHORT = { 'Mexico and Central America': 'Mexico', California: 'Calif.',
+  'Oregon and Washington': 'Ore.–Wash.', 'British Columbia': 'B.C.' }
+export function segmentSummary(ev) {
+  return (ev.segments || []).map((s) => {
+    const name = SEG_SHORT[s.name] || s.name
+    const ci = s.speed_ci95
+    if (ci && ci[0] > 0) return `${name} ${s.speed_m_s.toFixed(1)} m/s`
+    if (ci && ci[1] < 0) return `${name} southward`
+    return `${name} no clear lag`
+  }).join(' · ')
+}

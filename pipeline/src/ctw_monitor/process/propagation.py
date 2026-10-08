@@ -30,6 +30,13 @@ class EventRules:
     speed_range_m_s: tuple[float, float] = (1.0, 10.0)
     min_r2: float = 0.7
     major_prominence_cm: float = 15.0
+    # coast segments for per-segment speeds, bounded by capes (along-coast km):
+    # Cape Mendocino -888, Cape Flattery / Juan de Fuca entrance +1 (Neah Bay is Washington)
+    regions: tuple = (("Mexico and Central America", -1e9, -3000.0),
+                      ("California", -3000.0, -888.0),
+                      ("Oregon and Washington", -888.0, 1.0),
+                      ("British Columbia", 1.0, 1e9))
+    min_region_gauges: int = 3
 
 
 DEFAULT_RULES = EventRules()
@@ -128,12 +135,45 @@ def fit_chain(chain: list[Extremum], dist_km: dict[str, float]) -> dict:
     xs = np.array([dist_km[e.station] for e in chain], float)
     n = len(chain)
     if n < 3 or times.max() == times.min():
-        return {"speed_m_s": None, "speed_ci95": None, "r2": 0.0}
+        return {"speed_m_s": None, "speed_ci95": None, "r2": 0.0, "slowness": None}
     f = ca.propagation_fit(times, xs)
     s, q = f["slowness_s_per_m"], float(stats.t.ppf(0.975, n - 2)) * f["slowness_se"]
     ci = sorted([1 / (s + q), 1 / (s - q)]) if abs(s) > q else None
     return {"speed_m_s": float(f["speed_ms"]) if s != 0 else None,
-            "speed_ci95": [float(v) for v in ci] if ci else None, "r2": float(f["r"] ** 2)}
+            "speed_ci95": [float(v) for v in ci] if ci else None, "r2": float(f["r"] ** 2),
+            "slowness": float(s)}
+
+
+def leave_one_out(chain: list[Extremum], dist_km: dict[str, float]) -> list[float] | None:
+    """Range of speeds when each gauge in turn is left out (a jackknife-style check of how much
+    one gauge, often the end of the chain, sets the speed). None if any leave-one-out fit has
+    no direction (slowness of both signs, or zero): the range is then unbounded."""
+    if len(chain) < 4:
+        return None
+    sl = [fit_chain(chain[:i] + chain[i + 1:], dist_km)["slowness"] for i in range(len(chain))]
+    if any(v is None or v == 0 for v in sl) or (min(sl) < 0 < max(sl)):
+        return None
+    return sorted([1 / min(sl), 1 / max(sl)])
+
+
+def segment_fits(chain: list[Extremum], dist_km: dict[str, float],
+                 rules: EventRules = DEFAULT_RULES) -> list[dict]:
+    """The same fit within each coast segment that has at least min_region_gauges gauges of
+    the chain. A single straight line can hide a mix of near-simultaneous (forced) stretches
+    and propagating ones (Claude for Science review, 2026-10-08, item 1)."""
+    out = []
+    for name, lo, hi in rules.regions:
+        sub = [e for e in chain if lo <= dist_km[e.station] < hi]
+        if len(sub) < rules.min_region_gauges:
+            continue
+        f = fit_chain(sub, dist_km)
+        seg = {"name": name, "n_stations": len(sub), "first_station": sub[0].station,
+               "last_station": sub[-1].station, "r2": round(f["r2"], 3),
+               "speed_m_s": None if f["speed_m_s"] is None else round(f["speed_m_s"], 2)}
+        if f["speed_ci95"] is not None:
+            seg["speed_ci95"] = [round(v, 2) for v in f["speed_ci95"]]
+        out.append(seg)
+    return out
 
 
 def classify(fit: dict, rules: EventRules = DEFAULT_RULES) -> str:
@@ -189,6 +229,9 @@ def detect_events(series: dict[str, pd.Series], dist_km: dict[str, float],
             }
             if fit["speed_ci95"] is not None:
                 ev["speed_ci95"] = [round(v, 2) for v in fit["speed_ci95"]]
+            loo = leave_one_out(chain, dist_km)
+            ev["speed_loo"] = None if loo is None else [round(v, 2) for v in loo]
+            ev["segments"] = segment_fits(chain, dist_km, rules)
             events.append(ev)
     return sorted(events, key=lambda e: e["first"], reverse=True)
 
@@ -196,4 +239,5 @@ def detect_events(series: dict[str, pd.Series], dist_km: dict[str, float],
 def rules_dict(rules: EventRules = DEFAULT_RULES) -> dict:
     d = asdict(rules)
     d["speed_range_m_s"] = list(d["speed_range_m_s"])
+    d["regions"] = [{"name": n, "from_km": lo, "to_km": hi} for n, lo, hi in d["regions"]]
     return d

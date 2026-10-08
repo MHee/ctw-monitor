@@ -138,3 +138,22 @@ def test_no_finite_bound_when_timing_is_flat():
     chain = [Extremum(f"g{i}", t0 + pd.Timedelta(hours=h), -10, 10) for i, h in enumerate(hours)]
     f = fit_chain(chain, {f"g{i}": 300.0 * i for i in range(6)})
     assert f["speed_ci95"] is None and classify(f) in ("not propagating", "southward")
+
+
+def test_segments_and_leave_one_out():
+    """A pulse that is simultaneous in the south and propagates in the north: the segment fits
+    must show both, and the leave-one-out range must bracket the full-chain speed."""
+    from ctw_monitor.process.propagation import Extremum, fit_chain, leave_one_out, segment_fits
+    dist = {**{f"c{i}": -2000.0 + 250 * i for i in range(5)},           # California
+            **{f"w{i}": -800.0 + 150 * i for i in range(6)}}            # Oregon and Washington
+    t0 = pd.Timestamp("2026-05-17", tz="UTC")
+    chain = [Extremum(k, t0 + pd.Timedelta(hours=(2 * i) % 5), -10, 10)
+             for i, k in enumerate(f"c{i}" for i in range(5))]
+    chain += [Extremum(k, t0 + pd.Timedelta(days=(x + 800) / (2.0 * 86.4)), -10, 10)
+              for k, x in dist.items() if k.startswith("w")]
+    segs = {s["name"]: s for s in segment_fits(chain, dist)}
+    assert set(segs) == {"California", "Oregon and Washington"}
+    assert "speed_ci95" not in segs["California"]                     # no clear lag
+    assert abs(segs["Oregon and Washington"]["speed_m_s"] - 2.0) < 0.05
+    lo, hi = leave_one_out(chain, dist)
+    assert lo <= fit_chain(chain, dist)["speed_m_s"] <= hi
