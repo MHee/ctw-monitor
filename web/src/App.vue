@@ -30,9 +30,9 @@ const DATA_NOTE = 'Data: Ocean Networks Canada (Oceans 3.0), DFO-CHS, NOAA CO-OP
       <MapPanel v-if="d.stations" :stations="d.stations" :sealevel="d.sealevel" />
       <div class="two-col">
         <LineChartPanel v-if="d.bottom_pressure" title="NEPTUNE cross-margin bottom pressure"
-                        :product="d.bottom_pressure" y-label="Anomaly (cm of water)" />
+                        :product="d.bottom_pressure" :stations="d.stations" y-label="Anomaly (cm of water)" />
         <LineChartPanel v-if="d.temperature" title="Slope temperature"
-                        :product="d.temperature" y-label="Anomaly (°C)" />
+                        :product="d.temperature" :stations="d.stations" y-label="Anomaly (°C)" />
       </div>
       <EventsPanel v-if="d.events" :events="d.events" />
     </template>

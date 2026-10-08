@@ -157,6 +157,8 @@ cd web; npm run dev; npm run build; npx vitest run
 
 - Keepalive: accept one automated commit about every six weeks, or trigger externally.
 - Baseline period for anomalies (proposal: 2013–2025 day-of-year mean, 31-day smoothing).
+- Bottom-pressure drift: per-deployment exponential + linear fit or a 120-day high-pass.
+  Interim since M2: a straight line over the window (docs/METHODS.md).
 
 ## Definition of done for any change
 

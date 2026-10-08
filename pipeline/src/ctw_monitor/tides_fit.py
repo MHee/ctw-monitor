@@ -1,5 +1,6 @@
-"""`ctw-monitor tides-fit`: refit frozen tidal constants for every enabled tide gauge (rule 5).
+"""`ctw-monitor tides-fit`: refit frozen tidal constants for every enabled gauge (rule 5).
 
+Tide gauges in cm; ONC seafloor pressure converted from Pa to cm of water first.
 Run monthly or on demand, then upload the file as a Release asset:
     gh release upload tides-latest .cache/tidal_constants.json --clobber
 Stations that fail in a refit keep their previous constants from the existing file.
@@ -17,8 +18,9 @@ from . import __version__
 from .build import SEALEVEL_SOURCES
 from .config import enabled, load_config
 from .process import tides
-from .process.steps import despike
+from .process.steps import PA_PER_CM, despike
 from .products.writer import iso, write_json
+from .sources import onc
 from .sources.cache import RawCache
 
 
@@ -32,23 +34,28 @@ def run_tides_fit(out_path, years: float = 2.0, cache_dir=".cache/raw", only=Non
     old = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {}
     stations, failed = dict(old.get("stations", {})), {}
     hourly = pd.date_range(start, end, freq="1h")
-    for sid, fn, prov in SEALEVEL_SOURCES:
-        sts = [g for g in gauges if g["provider"] == prov]
+    # (source id, fetcher, stations, factor to cm): gauges are in cm, seafloor pressure in Pa
+    bprs = [b for b in enabled(cfg["bottom_pressure"]) if b.get("location_code")
+            and (not only or b["id"] in only)]
+    plan = [(sid, fn, [g for g in gauges if g["provider"] == prov], 1.0)
+            for sid, fn, prov in SEALEVEL_SOURCES]
+    plan.append(("onc_bpr", onc.fetch_bottom_pressure, bprs, 1.0 / PA_PER_CM))
+    for sid, fn, sts, to_cm in plan:
         if not sts:
             continue
         t = time.time()
         try:
             r = fn(sts, start, end, cache=cache)
         except Exception as e:  # noqa: BLE001 -- keep going with the other sources
-            failed.update({g["id"]: f"{type(e).__name__}: {e}"[:200] for g in sts})
-            print(f"{sid}: failed: {e}", file=sys.stderr, flush=True)
+            failed.update({g["id"]: onc.scrub(f"{type(e).__name__}: {e}")[:200] for g in sts})
+            print(f"{sid}: failed: {onc.scrub(e)}", file=sys.stderr, flush=True)
             continue
         failed.update(r.errors)
         print(f"{sid}: fetched {len(r.series)}/{len(sts)} in {time.time() - t:.0f}s",
               file=sys.stderr, flush=True)
         for k, s in r.series.items():
             try:
-                clean, nrem = despike(s.reindex(hourly))
+                clean, nrem = despike(s.reindex(hourly) * to_cm)
                 rec = tides.fit_constants(clean)
             except Exception as e:  # noqa: BLE001 -- e.g. too short a record
                 failed[k] = f"{type(e).__name__}: {e}"[:200]

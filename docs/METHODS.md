@@ -35,17 +35,24 @@ functions are in `pipeline/src/ctw_monitor/vendor/ctw_analysis.py`.
 
 ## Bottom pressure (NEPTUNE)
 
-1. Hourly means from ONC (`resamplePeriod=3600`); Pa throughout.
-2. Detide with frozen constants.
+1. Devices from `/deployments` per location (BPR; CORK for CBC27), each deployment in the
+   window fetched with `scalardata/device` at `resamplePeriod=900` (precomputed, fast),
+   channel chosen by `sensorName`, qaqcFlag {1, 2, 7}, averaged to hourly values
+   centred on hh:00; dbar × 10⁴ = Pa.
+2. Pa to cm of water with ρg = 1025 × 9.81 (≈ 100.6 Pa/cm), then despike and detide with
+   frozen constants (fitted by `tides-fit` like the gauges, in cm of water).
 3. **No IB correction.**
 4. Subtract the Cascadia Basin reference: mean of CNE20, CBC27 (CORK-1027C) and, if
-   added, the CBC27 APT. This removes basin-scale ocean mass and common-mode signals.
+   added, the CBC27 APT, each de-meaned. This removes basin-scale ocean mass and
+   common-mode signals. Without any basin gauge the product is not written (last good
+   is kept).
 5. Drift: removed by the basin reference only to the extent that drifts are similar;
-   they are not. Open decision for M2: an exponential + linear drift fit per
-   deployment (the `onc-pressure-drift-tides` method), refitted with the tidal
-   constants, versus a high-pass at 120 days. Never let a drift fit run over the most
-   recent 60 days alone.
-6. Godin low-pass, convert Pa to cm with ρg = 1025 × 9.81 (≈ 100.6 Pa/cm), 6-hourly.
+   they are not. **Interim (M2): a straight line fitted over the 400-day window is
+   removed** from each basin-referenced series. Still open: an exponential + linear
+   drift fit per deployment (the `onc-pressure-drift-tides` method), refitted with the
+   tidal constants, versus a high-pass at 120 days. Never let a drift fit run over the
+   most recent 60 days alone.
+6. Godin low-pass, minus the window mean, 6-hourly.
 
 Reference values from the 2026 event (22 May–1 Jun rise): FGPD 1334 Pa, NCBC 1000 Pa,
 NC89 488 Pa, Cascadia Basin 216 Pa.
