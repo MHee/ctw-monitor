@@ -57,14 +57,15 @@ class RawCache:
         if old.empty:
             parts.append(fetch(start, end))
         else:
+            # recent end first: a fetcher with a time budget spends it on the newest data,
+            # and older gaps are backfilled on later nights
+            parts.append(fetch(max(start, old.index[-1] - OVERLAP), end))
             if old.index[0] > start + pd.Timedelta(days=1):
                 parts.append(fetch(start, old.index[0]))
-            parts.append(fetch(max(start, old.index[-1] - OVERLAP), end))
-        new = pd.concat([p for p in parts if not p.empty]) if any(not p.empty for p in parts) \
-            else pd.Series(dtype=float)
-        if not new.empty:
-            new.index = new.index.as_unit("ns")
-            new = new[~new.index.duplicated(keep="last")]
+        parts = [p for p in parts if not p.empty]
+        new = pd.concat(parts) if parts else empty_series()
+        new.index = pd.DatetimeIndex(new.index).as_unit("ns")
+        new = new[~new.index.duplicated(keep="last")]
         s = new.combine_first(old) if not old.empty else new      # fresh values win
         s = s.sort_index()
         if not s.empty:

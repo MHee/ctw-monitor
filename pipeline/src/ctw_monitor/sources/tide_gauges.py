@@ -140,23 +140,32 @@ def fetch_chs(stations: list[dict], start, end, cache: RawCache | None = None) -
     return _run("chs_iwls", stations, work)
 
 
-def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None) -> SourceResult:
+IOC_BUDGET_S = 20 * 60     # whole source, per run; the Actions job has 60 min for everything
+
+
+def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None,
+              budget_s: float = IOC_BUDGET_S) -> SourceResult:
+    """From GitHub runners IOC is slow and drops connections: a cold 400-day pull failed with
+    4 workers and then ran past the 60-min job limit with 2 (2026-10-08). So: 10-day requests
+    newest first with a short timeout, a time budget for the whole source, and the raw cache
+    backfills older chunks on later nights. A chunk that still fails is skipped."""
     cache = cache or RawCache(None)
+    deadline = time.monotonic() + budget_s
 
     def work(st):
         code, sensor = st["provider_id"], st.get("sensor", "rad")
-        failed_chunks = []
+        failed_chunks, skipped = [], []
 
         def fetch(a, b):
-            # one 10-day request at a time with a pause: from GitHub runners, IOC dropped
-            # connections part-way through a 400-day pull with 4 workers (2026-10-08). A chunk
-            # that still fails after the vendor's retries is skipped, not fatal for the station.
             parts = []
-            for x, y in _chunks(a, b, 10):
+            for x, y in reversed(_chunks(a, b, 10)):
+                if time.monotonic() > deadline:
+                    skipped.append(y.strftime("%Y-%m-%d"))
+                    break
                 time.sleep(1.0)
                 try:
-                    parts.append(md.ioc_sea_level(code, x, y))
-                except requests.RequestException:
+                    parts.append(md.ioc_sea_level(code, x, y, timeout=30, retries=2, pause_s=3))
+                except (requests.RequestException, ValueError):   # network, or a non-JSON reply
                     failed_chunks.append(x.strftime("%Y-%m-%d"))
             parts = [p for p in parts if not p.empty]
             if not parts:
@@ -176,6 +185,8 @@ def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None) -
         meta = {"provider": "IOC SLSMF", "provider_id": code, "sensor": sensor, "not_qc": True}
         if failed_chunks:
             meta["failed_chunks"] = failed_chunks
+        if skipped:
+            meta["time_budget_reached_before"] = skipped[0]   # older data come on later nights
         return sl, None, meta
 
     return _run("ioc_slsmf", stations, work, workers=2)
