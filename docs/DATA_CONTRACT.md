@@ -1,4 +1,4 @@
-# Data contract (schema_version 0.2.0)
+# Data contract (schema_version 0.3.0)
 
 Everything the web app reads lives under `data/` on the site. Every file validates
 against a JSON Schema in `schema/`; CI validates the synthetic set and each nightly
@@ -13,6 +13,7 @@ build validates before deploying.
 | `bottom_pressure.json` | `timeseries.schema.json` | basin-referenced BPR anomalies, cm of water |
 | `temperature.json` | `timeseries.schema.json` | temperature anomalies, °C |
 | `events.json` | `events.schema.json` | detected extrema and along-coast speed fits |
+| `context.json` | `context.schema.json` | latest NOAA CPC ONI value (context only) |
 
 ## Conventions
 
@@ -30,7 +31,7 @@ build validates before deploying.
 
 ```json
 {
-  "schema_version": "0.2.0",
+  "schema_version": "0.3.0",
   "product": "sealevel_anomaly",
   "units": "cm",
   "processing": "Despiked, detided (frozen constants), IB-corrected, Godin low-pass, minus 2013–2025 day-of-year mean; 6-hourly",
@@ -52,3 +53,13 @@ build validates before deploying.
 (time is the slow axis), plus `mask_km` listing gaps with no gauge within 150 km
 (for example the Baja California gap) so the heatmap can hatch them rather than
 interpolate across them.
+
+`events.json` (0.3.0) holds `processing`, the `rules` used, and `events`, newest first. Each
+event has `id`, `type` (minimum or maximum), `first` (the earliest extremum), `segment`
+(first..last gauge id of its stretch of coast), `n_stations`, `span_km`, `prominence_cm`
+(median over its gauges), `major`, `speed_m_s`, `speed_ci95`, `r2`, `propagating`,
+`verdict` (`propagating`, `southward` or `not propagating`) and `extrema` (station, time,
+value_cm, prominence_cm for each gauge). See docs/METHODS.md, "Events and speed".
+
+`context.json` (0.3.0) holds `oni`: `season` (for example `JAS`), `year`, `anomaly_c`,
+`total_c`, `recent` (the last 12 seasons), `source_url`, `info_url` and `fetched`.

@@ -12,3 +12,13 @@ Copied 2026-10-07 from `OneDrive\Claude_Exchange\skills_2026-10\` and the instal
 ERA5 readers). The nightly path must not call them.
 
 Record any bug fix here with date and reason.
+
+## Fixes
+
+- 2026-10-08, `ctw_analysis.propagation_fit`: the fit regressed distance on time. Timing
+  errors then sit in the predictor, which attenuates the slope and biases the speed low
+  (Monte Carlo: true 3.0 m/s, 24 h timing scatter -> 2.7-2.8 m/s; 2026 minima: 3.2 vs
+  3.8 m/s). It now regresses time on distance and also returns the slowness, its standard
+  error and dof, for confidence limits inverted from the slowness. Same keys as before,
+  plus `slowness_s_per_m`, `slowness_se` and `slowness_dof`. Approved by Martin;
+  reported upstream in feedback/ (see CLAUDE.md).

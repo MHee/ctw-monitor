@@ -13,7 +13,7 @@ export async function loadAll() {
   const manifest = await getJSON('manifest.json')
   const major = Number(String(manifest.schema_version).split('.')[0])
   if (major !== KNOWN_MAJOR) throw new Error('data format changed')
-  const names = ['stations', 'sealevel', 'hovmoller', 'bottom_pressure', 'temperature', 'events']
+  const names = ['stations', 'sealevel', 'hovmoller', 'bottom_pressure', 'temperature', 'events', 'context']
   const out = { manifest }
   await Promise.all(names.map(async (n) => {
     try { out[n] = await getJSON(`${n}.json`) } catch (e) { out[n] = null; console.warn(e) }
@@ -35,4 +35,20 @@ export function freshness(src, now = Date.now()) {
   if (!isFinite(days) || days > 14) return 'FAULT'
   if (src.status === 'stale' || days > 3) return 'STALE'
   return 'LIVE'
+}
+
+// Events table rows (docs/METHODS.md item 7): major events first, then the rest of the
+// last `days` days; newest first within each group. Non-propagating rows stay (greyed out).
+export function eventRows(events, now = Date.now(), days = 90) {
+  const recent = now - days * 86400000
+  const list = (events?.events || []).map((e) => ({ ...e, t: Date.parse(e.first) }))
+  const major = list.filter((e) => e.major).sort((a, b) => b.t - a.t)
+  const rest = list.filter((e) => !e.major && e.t >= recent).sort((a, b) => b.t - a.t)
+  return { rows: [...major, ...rest], hidden: list.length - major.length - rest.length }
+}
+
+// Age in whole days, for the status panel
+export function ageDays(iso, now = Date.now()) {
+  const t = Date.parse(iso || '')
+  return Number.isFinite(t) ? Math.max(0, Math.floor((now - t) / 86400000)) : null
 }

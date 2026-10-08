@@ -138,10 +138,17 @@ def event_metrics(lp, rise_window=None, min_window=None, max_window=None, rise_s
 
 
 def propagation_fit(times, distances_km, t0=None):
-    """Least-squares fit of alongshore distance against event time (the peak-timing propagation test).
+    """Least-squares fit of event time against alongshore distance (the peak-timing propagation test).
     times: Timestamps; distances_km: same length (north positive gives a positive speed for
-    poleward propagation). Returns a dict with speed_ms, se_ms, r, intercept_km, t0, and
-    arrival(dist_km) -> Timestamp, which extrapolates the arrival time at another distance.
+    poleward propagation). Returns a dict with speed_ms, se_ms, r, intercept_km, t0,
+    slowness_s_per_m, slowness_se, slowness_dof, and arrival(dist_km) -> Timestamp, which
+    extrapolates the arrival time at another distance.
+
+    Time is the dependent variable: the distances are exact and the timing carries the error.
+    The original regressed distance on time, which attenuates the slope when timing errors
+    are large and biases the speed low (true 3.0 m/s, 24 h timing scatter: 2.7-2.8 m/s).
+    Confidence limits on the speed come from the slowness: [1/(s + q), 1/(s - q)], where
+    q = t(0.975, dof) * slowness_se; se_ms is the delta-method approximation only.
     """
     import numpy as np, pandas as pd
     times = pd.DatetimeIndex(times)
@@ -149,12 +156,18 @@ def propagation_fit(times, distances_km, t0=None):
         t0 = times.min()
     tt = np.asarray((times - t0).total_seconds() / 86400.0)
     xx = np.asarray(distances_km, float)
-    p = np.polyfit(tt, xx, 1)
-    res = xx - np.polyval(p, tt)
-    se = np.sqrt(np.sum(res ** 2) / (len(tt) - 2) / np.sum((tt - tt.mean()) ** 2))
-    return {"speed_ms": p[0] * 1000 / 86400, "se_ms": se * 1000 / 86400,
-            "r": float(np.corrcoef(tt, xx)[0, 1]), "intercept_km": p[1], "t0": t0,
-            "arrival": lambda d: t0 + pd.Timedelta(days=(d - p[1]) / p[0])}
+    p = np.polyfit(xx, tt, 1)                     # days = p[1] + p[0] * km
+    res = tt - np.polyval(p, xx)
+    se_s = np.sqrt(np.sum(res ** 2) / (len(xx) - 2) / np.sum((xx - xx.mean()) ** 2))
+    to_s_per_m = 86400 / 1000
+    s = p[0] * to_s_per_m                          # slowness, s/m
+    se_sm = se_s * to_s_per_m
+    speed = 1 / s if s != 0 else float("inf")
+    return {"speed_ms": speed, "se_ms": se_sm / s ** 2 if s != 0 else float("inf"),
+            "slowness_s_per_m": s, "slowness_se": se_sm, "slowness_dof": len(xx) - 2,
+            "r": float(np.corrcoef(tt, xx)[0, 1]),
+            "intercept_km": -p[1] / p[0] if p[0] != 0 else float("nan"), "t0": t0,
+            "arrival": lambda d: t0 + pd.Timedelta(days=p[1] + p[0] * d)}
 
 
 def bandpass_daily(x, short_days=None, long_days=None, order=3):

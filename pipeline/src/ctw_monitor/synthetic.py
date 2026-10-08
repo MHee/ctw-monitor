@@ -12,8 +12,10 @@ import pandas as pd
 
 from . import SCHEMA_VERSION, __version__
 from .config import alongshore_km, enabled, load_config
+from .products.events import events_product
 from .products.sealevel import hovmoller_product, stations_product
 from .products.writer import iso, timeseries_product, write_json
+from .sources.context import ONI_PAGE
 
 SPEED_M_S = 3.0
 
@@ -74,13 +76,18 @@ def make_synthetic(out_dir: Path | str, end: str = "2026-10-01", days: int = 400
     write_json(timeseries_product("temperature_anomaly", "degC", "SYNTHETIC: daily mean minus "
                "day-of-year mean", didx, tt, {k: {} for k in tt}, ndigits=3), out / "temperature.json")
 
-    events = {"schema_version": SCHEMA_VERSION, "events": [
-        {"id": "synthetic-1", "type": "maximum", "speed_m_s": SPEED_M_S, "speed_ci95": [2.7, 3.3],
-         "r2": 0.97, "n_stations": len(order), "first": iso(idx[0] + pd.Timedelta(days=262)),
-         "label": "SYNTHETIC test pulse", "propagating": True}]}
+    series = {k: pd.Series(v, index=idx) for k, v in sl.items()}
+    events = events_product(series, dist)
     write_json(events, out / "events.json")
 
     write_json(stations_product(cfg, dist), out / "stations.json")
+
+    write_json({"schema_version": SCHEMA_VERSION, "oni": {
+        "season": "JAS", "year": 2026, "anomaly_c": 1.5, "total_c": 28.5,
+        "source_url": cfg["context"]["oni_url"], "info_url": ONI_PAGE,
+        "recent": [{"season": s_, "year": 2026, "anomaly_c": a_} for s_, a_ in
+                   [("MAM", 0.2), ("AMJ", 0.5), ("MJJ", 0.9), ("JJA", 1.2), ("JAS", 1.5)]]}},
+               out / "context.json")
 
     now = iso(idx[-1])
     manifest = {
@@ -93,9 +100,10 @@ def make_synthetic(out_dir: Path | str, end: str = "2026-10-01", days: int = 400
             {"id": "ioc_slsmf", "status": "stale", "last_success": iso(idx[-20]),
              "last_observation": iso(idx[-20]), "message": "SYNTHETIC example of a stale source"},
             {"id": "onc", "status": "ok", "last_success": now, "last_observation": now},
+            {"id": "noaa_oni", "status": "ok", "last_success": now},
         ],
         "products": ["stations.json", "sealevel.json", "hovmoller.json", "bottom_pressure.json",
-                     "temperature.json", "events.json"],
+                     "temperature.json", "events.json", "context.json"],
     }
     write_json(manifest, out / "manifest.json")
     return manifest

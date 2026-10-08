@@ -11,6 +11,13 @@
       "type": "string",
       "pattern": "^0\\.\\d+\\.\\d+$"
     },
+    "processing": {
+      "type": "string"
+    },
+    "rules": {
+      "type": "object",
+      "description": "EventRules used (docs/METHODS.md, Events and speed)"
+    },
     "events": {
       "type": "array",
       "items": {
@@ -61,6 +68,52 @@
           },
           "propagating": {
             "type": "boolean"
+          },
+          "verdict": {
+            "enum": [
+              "propagating",
+              "southward",
+              "not propagating"
+            ]
+          },
+          "segment": {
+            "type": "string",
+            "description": "first..last gauge id of the chain segment"
+          },
+          "span_km": {
+            "type": "number"
+          },
+          "prominence_cm": {
+            "type": "number",
+            "description": "median extremum prominence over the gauges"
+          },
+          "major": {
+            "type": "boolean"
+          },
+          "extrema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "station",
+                "time"
+              ],
+              "properties": {
+                "station": {
+                  "type": "string"
+                },
+                "time": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+                },
+                "value_cm": {
+                  "type": "number"
+                },
+                "prominence_cm": {
+                  "type": "number"
+                }
+              }
+            }
           }
         }
       }

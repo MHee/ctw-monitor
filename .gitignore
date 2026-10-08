@@ -17,6 +17,9 @@ __pycache__/
 node_modules/
 web/dist/
 
+# Upstream skill feedback: a junction to OneDrive\Claude_Exchange\feedback (CLAUDE.md)
+feedback/
+
 # Secrets
 .env
 .env.*
