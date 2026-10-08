@@ -16,7 +16,7 @@ const props = defineProps({
 const canvas = ref(null)
 const box = ref(null)
 const vmax = ref(10)
-const M = { left: 118, right: 10, top: 8, bottom: 26 }   // plot margins, CSS px
+const M = { left: 118, right: 118, top: 8, bottom: 26 }  // plot margins, CSS px; labels both sides
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 let off = null
 let ro = null
@@ -77,15 +77,22 @@ function draw() {
   ctx.strokeStyle = tk.axis; ctx.lineWidth = 1
   ctx.strokeRect(M.left + 0.5, M.top + 0.5, pw - 1, ph - 1)
 
-  // y axis: gauge names at their along-coast distance (skip labels that would overlap)
+  // y axis: gauge names at their along-coast distance, left column first; a name that would
+  // overlap there goes to the right column; if both are taken, only the tick is drawn
   ctx.font = `12px ${FONTS.body}`
-  ctx.fillStyle = tk.text; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-  let lastY = Infinity
+  ctx.fillStyle = tk.text; ctx.textBaseline = 'middle'
+  const xr = M.left + pw
+  let lastL = Infinity, lastR = Infinity
   for (const s of gauges.value) {
     const yy = y(s.alongshore_km)
     if (yy < M.top || yy > M.top + ph) continue
     ctx.beginPath(); ctx.moveTo(M.left - 4, yy); ctx.lineTo(M.left, yy); ctx.stroke()
-    if (lastY - yy >= 13) { ctx.fillText(s.name, M.left - 6, yy); lastY = yy }
+    ctx.beginPath(); ctx.moveTo(xr, yy); ctx.lineTo(xr + 4, yy); ctx.stroke()
+    if (lastL - yy >= 13) {
+      ctx.textAlign = 'right'; ctx.fillText(s.name, M.left - 6, yy); lastL = yy
+    } else if (lastR - yy >= 13) {
+      ctx.textAlign = 'left'; ctx.fillText(s.name, xr + 6, yy); lastR = yy
+    }
   }
 
   // x axis: month ticks, labels thinned to at least ~48 px apart, year at January

@@ -164,3 +164,13 @@ def test_build_sealevel_writes_valid_products_and_falls_back(tmp_path, monkeypat
     assert sl2["meta"]["tofino"]["stale"] is True
     assert sl2["values"]["tofino"] == sl["values"]["tofino"]
     assert validate_dir(second) == []
+
+
+def test_coastal_path_in_stations_product():
+    from ctw_monitor.products.sealevel import coastal_path
+    cfg = build.load_config()
+    path = coastal_path(cfg)
+    km = [p["alongshore_km"] for p in path]
+    assert km == sorted(km)                                    # equatorward to poleward
+    flattery = next(p for p in path if p["name"] == "Cape Flattery")
+    assert abs(flattery["alongshore_km"]) < 30                 # 0 km is at Neah Bay

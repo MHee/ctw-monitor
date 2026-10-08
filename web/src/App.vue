@@ -7,6 +7,7 @@ import StatusPanel from './components/StatusPanel.vue'
 import PropagationPanel from './components/PropagationPanel.vue'
 import LineChartPanel from './components/LineChartPanel.vue'
 import EventsPanel from './components/EventsPanel.vue'
+import MapPanel from './components/MapPanel.vue'
 import { loadAll } from './lib/data.js'
 
 const d = ref(null)
@@ -14,7 +15,7 @@ const error = ref('')
 onMounted(async () => {
   try { d.value = await loadAll() } catch (e) { error.value = String(e.message || e) }
 })
-const DATA_NOTE = 'Data: Ocean Networks Canada (Oceans 3.0), DFO-CHS, NOAA CO-OPS, IOC SLSMF, UHSLC, ECCC, Copernicus ERA5'
+const DATA_NOTE = 'Data: Ocean Networks Canada (Oceans 3.0), DFO-CHS, NOAA CO-OPS, IOC SLSMF, UHSLC, ECCC, Copernicus ERA5; basemap GMRT'
 </script>
 
 <template>
@@ -26,6 +27,7 @@ const DATA_NOTE = 'Data: Ocean Networks Canada (Oceans 3.0), DFO-CHS, NOAA CO-OP
     <template v-if="d">
       <StatusPanel :manifest="d.manifest" />
       <PropagationPanel v-if="d.hovmoller" :grid="d.hovmoller" :sealevel="d.sealevel" :stations="d.stations" />
+      <MapPanel v-if="d.stations" :stations="d.stations" :sealevel="d.sealevel" />
       <div class="two-col">
         <LineChartPanel v-if="d.bottom_pressure" title="NEPTUNE cross-margin bottom pressure"
                         :product="d.bottom_pressure" y-label="Anomaly (cm of water)" />
