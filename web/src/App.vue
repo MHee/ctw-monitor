@@ -35,5 +35,5 @@ const DATA_NOTE = 'Data: Ocean Networks Canada (Oceans 3.0), DFO-CHS, NOAA CO-OP
       <EventsPanel v-if="d.events" :events="d.events" />
     </template>
   </main>
-  <OncFooter :data-note="DATA_NOTE" repo-url="" />
+  <OncFooter :data-note="DATA_NOTE" repo-url="https://github.com/MHee/ctw-monitor" />
 </template>

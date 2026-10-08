@@ -56,8 +56,8 @@ A static dashboard on GitHub Pages, rebuilt daily by GitHub Actions, that shows:
 9. **Branding.** Follow `docs/BRANDING.md`. The footer must carry "A University of
    Victoria initiative". ONC Blue `#129DC0` is an accent and highlight only. Anomaly
    fields use a diverging scientific colormap (cmocean *balance*), not brand colours.
-10. **Say what the data are.** The fixed banner states that the page is not a
-    forecast, that IOC data are real-time and not quality-controlled, and when the
+10. **Say what the data are.** The fixed banner states that the page is a personal
+    prototype (not an official ONC data product), that it is not a forecast, that IOC data are real-time and not quality-controlled, and when the
     page shows synthetic data. Every panel states units and processing in one line.
 
 ## Milestones (do them in order; each ends with green CI)

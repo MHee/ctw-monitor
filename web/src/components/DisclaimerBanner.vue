@@ -4,6 +4,11 @@ defineProps({ synthetic: { type: Boolean, default: false } })
 </script>
 
 <template>
+  <div class="banner prototype" role="note">
+    <strong>Personal prototype.</strong> Built and maintained by Martin Heesemann to test the
+    method. It is not an official Ocean Networks Canada data product, and its content and
+    methods may change without notice.
+  </div>
   <div v-if="synthetic" class="banner synthetic" role="alert">
     <strong>Sample data.</strong> Everything on this page is synthetic test data, not observations.
   </div>

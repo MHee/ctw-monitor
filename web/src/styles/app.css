@@ -1,6 +1,7 @@
 /* App-specific layout only. Colours come from onc-brand.css variables. */
 .app-main { max-width: 1280px; margin: 0 auto; padding: 1rem; display: grid; gap: 1rem; }
 .banner { border-left: 4px solid var(--warn); background: var(--panel); padding: .75rem 1rem; }
+.banner.prototype { border-left-color: var(--onc-blue); }
 .banner.synthetic { border-left-color: var(--error); }
 .panel-note { color: var(--muted); font-size: .875rem; margin: .25rem 0 0; }
 .two-col { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
