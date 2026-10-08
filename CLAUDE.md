@@ -56,8 +56,8 @@ A static dashboard on GitHub Pages, rebuilt daily by GitHub Actions, that shows:
 9. **Branding.** Follow `docs/BRANDING.md`. The footer must carry "A University of
    Victoria initiative". ONC Blue `#129DC0` is an accent and highlight only. Anomaly
    fields use a diverging scientific colormap (cmocean *balance*), not brand colours.
-10. **Say what the data are.** The fixed banner states that the page is not a
-    forecast, that IOC data are real-time and not quality-controlled, and when the
+10. **Say what the data are.** The fixed banner states that the page is a personal
+    prototype (not an official ONC data product), that it is not a forecast, that IOC data are real-time and not quality-controlled, and when the
     page shows synthetic data. Every panel states units and processing in one line.
 
 ## Milestones (do them in order; each ends with green CI)
@@ -128,6 +128,12 @@ cd web; npm run dev; npm run build; npx vitest run
   per-interval dicts; qaqcFlag 7 ("averaged value") is normal; treat {1, 2, 7} as good.
 - CHS IWLS: 30-day windows at `SIXTY_MINUTES`, 6-day windows at 15 min. Online `wlo`
   holdings start around 2019–2020 for Tofino, Bamfield, Winter Harbour, Prince Rupert.
+- NOAA CO-OPS `hourly_height` (verified) had no data for the last days at any gauge on
+  2026-10-07; use 6-min `water_level` (31-day request limit) for nightly runs. Every
+  configured CO-OPS gauge reports `air_pressure` (Los Angeles 9410660 only intermittently).
+- Acajutla: IOC `acaj` (sensor `rad`) is live; UHSLC fast delivery (id 82) lagged five
+  weeks. The IOC `atm` channel there is near-constant and not a barometer.
+- Central BC gap filler: CHS Pruth Bay 08863 (Calvert Island), live, no `ap1`.
 - IOC SLSMF: about 1-min raw data, 10-day chunks; an empty list with HTTP 200 means no
   data. No 2026 Baja California gauges on IOC or UHSLC (Ensenada, Cedros, Cabo San Lucas
   and Mazatlán are missing), so the chain has a gap between La Jolla and Puerto Vallarta.

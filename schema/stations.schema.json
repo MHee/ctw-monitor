@@ -58,6 +58,37 @@
           }
         }
       }
+    },
+    "coastal_path": {
+      "type": "array",
+      "description": "waypoints the along-coast distance follows (0 km at Neah Bay, poleward positive)",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "lat",
+          "lon",
+          "alongshore_km"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lon": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "alongshore_km": {
+            "type": "number"
+          }
+        }
+      }
     }
   }
 }

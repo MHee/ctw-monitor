@@ -1,4 +1,4 @@
-# Data contract (schema_version 0.1.0)
+# Data contract (schema_version 0.2.0)
 
 Everything the web app reads lives under `data/` on the site. Every file validates
 against a JSON Schema in `schema/`; CI validates the synthetic set and each nightly
@@ -30,7 +30,7 @@ build validates before deploying.
 
 ```json
 {
-  "schema_version": "0.1.0",
+  "schema_version": "0.2.0",
   "product": "sealevel_anomaly",
   "units": "cm",
   "processing": "Despiked, detided (frozen constants), IB-corrected, Godin low-pass, minus 2013–2025 day-of-year mean; 6-hourly",
@@ -42,6 +42,10 @@ build validates before deploying.
   "meta": {"neah_bay": {"ib_source": "station", "last_valid": "2026-10-06T18:00:00Z"}}
 }
 ```
+
+`stations.json` also carries `coastal_path`: the waypoints (name, lat, lon,
+`alongshore_km`) that define the along-coast distance, so the map draws the same path.
+0.2.0 added it.
 
 `hovmoller.json` holds `distance_km` (grid centres, poleward positive, 0 at Neah Bay),
 `t0`/`dt_s`/`n`, and `values` as a flat row-major array of length `n × len(distance_km)`

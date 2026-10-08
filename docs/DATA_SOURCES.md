@@ -16,6 +16,11 @@ Station list with ids and coordinates: `config/stations.yaml`. Coordinates were 
 from the ONC locations API, the CHS IWLS metadata endpoint and the NOAA CO-OPS metadata
 API on 2026-10-07; the coastal-path waypoints are approximate and need checking.
 
+Gap fillers added in M1 (2026-10-07): CO-OPS Santa Monica 9410840, Port San Luis 9412110
+and Monterey 9413450 (La Jolla to San Francisco); CHS Pruth Bay 08863 (Winter Harbour to
+Prince Rupert). Acajutla now comes from IOC `acaj`, which is live; UHSLC fast delivery
+lagged five weeks. The Baja California gap (about 1870 km) remains.
+
 Excluded and why:
 
 - CQS64 / CORK-1364A: the "Seafloor Pressure" stream is a 156 mbsf borehole screen.
