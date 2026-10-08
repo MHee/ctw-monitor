@@ -12,6 +12,8 @@ const names = computed(() => Object.fromEntries((props.stations?.stations || [])
 const name = (id) => names.value[id] || id
 const table = computed(() => eventRows(props.events))
 const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : '–')
+// an interval inverted from a slowness near zero can reach hundreds of m/s: say so plainly
+const fmtCi = (v) => (Math.abs(v) > 50 ? (v > 0 ? '>50' : '<−50') : fmt(v))
 function route(e) {
   const ex = e.extrema || []
   return ex.length ? `${name(ex[0].station)} → ${name(ex[ex.length - 1].station)}` : (e.label || e.id)
@@ -35,7 +37,7 @@ function route(e) {
             <td>{{ e.type }}<span v-if="e.major" class="tag">major</span></td>
             <td>{{ route(e) }}</td>
             <td class="num">{{ e.n_stations }} · {{ fmt(e.span_km, 0) }} km</td>
-            <td class="num">{{ fmt(e.speed_m_s) }}<template v-if="e.speed_ci95"> [{{ fmt(e.speed_ci95[0]) }}, {{ fmt(e.speed_ci95[1]) }}]</template></td>
+            <td class="num">{{ fmt(e.speed_m_s) }}<template v-if="e.speed_ci95"> [{{ fmtCi(e.speed_ci95[0]) }}, {{ fmtCi(e.speed_ci95[1]) }}]</template></td>
             <td class="num">{{ fmt(e.r2, 2) }}</td>
             <td class="num">{{ fmt(e.prominence_cm) }}</td>
             <td><span class="verdict">{{ e.verdict || (e.propagating ? 'propagating' : 'not propagating') }}</span></td>

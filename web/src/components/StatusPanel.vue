@@ -3,7 +3,10 @@
 import { computed } from 'vue'
 import { freshness, ageDays } from '../lib/data.js'
 
-const props = defineProps({ manifest: { type: Object, required: true } })
+const props = defineProps({
+  manifest: { type: Object, required: true },
+  stale: { type: Array, default: () => [] },   // stations without recent data (lib/data.js)
+})
 const NAMES = {
   noaa_coops: 'NOAA CO-OPS tide gauges', chs_iwls: 'CHS tide gauges', ioc_slsmf: 'IOC tide gauges',
   uhslc_fast: 'UHSLC tide gauges', onc_bpr: 'ONC bottom pressure', onc_ctd: 'ONC CTD temperature',
@@ -23,6 +26,10 @@ const problems = computed(() => rows.value.filter((r) => r.word !== 'LIVE' || r.
     <div class="status-bar">
       <span v-for="s in rows" :key="s.id" :class="['pill', s.cls]">{{ s.name }} · {{ s.word }}</span>
     </div>
+    <p v-if="stale.length" class="stale-stations">
+      <span class="pill stale">{{ stale.length }} station{{ stale.length > 1 ? 's' : '' }} without recent data</span>
+      <template v-for="(s, i) in stale" :key="s.id">{{ i ? '; ' : ' ' }}{{ s.name }} ({{ s.label }}): {{ s.last ? `last ${s.last.slice(0, 10)}` : 'no data' }}</template>
+    </p>
     <details class="status-details">
       <summary>Details{{ problems ? ` (${problems} with notes)` : '' }}</summary>
       <div class="table-scroll">

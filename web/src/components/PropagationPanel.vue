@@ -5,6 +5,7 @@
 // TODO(M5): hover read-out, screen-reader summary (latest anomaly at Neah Bay, latest event).
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { diverging, robustLimit } from '../lib/colormap.js'
+import { eventLine, isBest, BEST } from '../lib/data.js'
 import { onThemeChange, tokens, FONTS } from '../lib/onc-theme.js'
 import OffsetTraces from './OffsetTraces.vue'
 
@@ -12,7 +13,11 @@ const props = defineProps({
   grid: { type: Object, required: true },
   sealevel: { type: Object, default: null },
   stations: { type: Object, default: null },
+  events: { type: Object, default: null },
 })
+const eventMode = ref('best')          // 'best' | 'all' | 'none'
+const propagating = computed(() => (props.events?.events || []).filter((e) => e.propagating))
+const nBest = computed(() => propagating.value.filter(isBest).length)
 const canvas = ref(null)
 const box = ref(null)
 const vmax = ref(10)
@@ -74,6 +79,7 @@ function draw() {
   ctx.imageSmoothingEnabled = false
   ctx.drawImage(heatmap(g), M.left, M.top, pw, ph)
   ctx.restore()
+  if (eventMode.value !== 'none') drawEvents(ctx, x, y, tk, pw, ph)
   ctx.strokeStyle = tk.axis; ctx.lineWidth = 1
   ctx.strokeRect(M.left + 0.5, M.top + 0.5, pw - 1, ph - 1)
 
@@ -110,6 +116,48 @@ function draw() {
   }
 }
 
+// Propagating events: fitted line (time on distance, as in the pipeline) over the gauges it
+// spans, and a marker at each gauge's extremum (filled: maximum, open: minimum). The best
+// propagators (lib/data.js isBest) are solid with their speed; in 'all' mode the others are thin
+// and dashed. A halo in the panel colour keeps lines readable on the field.
+function drawEvents(ctx, x, y, tk, pw, ph) {
+  const kmOf = Object.fromEntries(gauges.value.map((s) => [s.id, s.alongshore_km]))
+  ctx.save()
+  ctx.beginPath(); ctx.rect(M.left, M.top, pw, ph); ctx.clip()
+  const evs = propagating.value.map((e) => ({ ...e, best: isBest(e) }))
+    .filter((e) => eventMode.value === 'all' || e.best)
+    .sort((a, b) => Number(a.best) - Number(b.best))
+  for (const ev of evs) {
+    const f = eventLine(ev, kmOf)
+    if (!f) continue
+    const w = ev.best ? 2.25 : 1
+    const xa = x(f.a + f.s * f.kmMin), ya = y(f.kmMin), xb = x(f.a + f.s * f.kmMax), yb = y(f.kmMax)
+    for (const [col, lw] of [[tk.panel, w + 2.5], [tk.text, w]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = lw
+      ctx.setLineDash(ev.best ? [] : [5, 3])
+      ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke()
+    }
+    ctx.setLineDash([])
+    for (const p of f.pts) {
+      ctx.beginPath(); ctx.arc(x(p.t), y(p.km), ev.best ? 3.5 : 2.5, 0, 2 * Math.PI)
+      ctx.fillStyle = ev.type === 'maximum' ? tk.text : tk.panel
+      ctx.strokeStyle = ev.type === 'maximum' ? tk.panel : tk.text
+      ctx.lineWidth = 1.25; ctx.fill(); ctx.stroke()
+    }
+    if (ev.best && Number.isFinite(ev.speed_m_s)) {
+      // label beside the middle of the line, kept inside the plot
+      const label = `${ev.speed_m_s.toFixed(1)} m/s`
+      ctx.font = `600 12px ${FONTS.body}`
+      const lx = Math.min((xa + xb) / 2 + 6, M.left + pw - ctx.measureText(label).width - 2)
+      const ly = Math.max(M.top + 8, Math.min(M.top + ph - 8, (ya + yb) / 2))
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+      ctx.lineWidth = 3; ctx.strokeStyle = tk.panel; ctx.strokeText(label, lx, ly)
+      ctx.fillStyle = tk.text; ctx.fillText(label, lx, ly)
+    }
+  }
+  ctx.restore()
+}
+
 onMounted(() => {
   draw()
   off = onThemeChange(draw)
@@ -120,7 +168,7 @@ onMounted(() => {
   ro.observe(box.value)
 })
 onUnmounted(() => { off?.(); ro?.disconnect() })
-watch(() => [props.grid, props.stations], draw)
+watch(() => [props.grid, props.stations, props.events, eventMode.value], draw)
 </script>
 
 <template>
@@ -130,9 +178,18 @@ watch(() => [props.grid, props.stations], draw)
       <canvas ref="canvas" role="img"
               aria-label="Distance-time diagram of sea-level anomaly along the coast, Central America at the bottom, Prince Rupert at the top"></canvas>
     </div>
+    <fieldset v-if="propagating.length" class="event-mode">
+      <legend>Events on the plot</legend>
+      <label><input id="ev-best" v-model="eventMode" type="radio" value="best"> Best propagators ({{ nBest }})</label>
+      <label><input id="ev-all" v-model="eventMode" type="radio" value="all"> All propagating ({{ propagating.length }})</label>
+      <label><input id="ev-none" v-model="eventMode" type="radio" value="none"> None</label>
+    </fieldset>
     <div class="colourbar">−{{ vmax }} cm <span>cmocean balance: blue low, red high; hatched: no data</span> +{{ vmax }} cm</div>
     <p class="panel-note">{{ grid.processing }} · distance along the coast, 0 km at Neah Bay,
-      poleward up · a poleward-propagating wave appears as a band sloping up to the right.</p>
+      poleward up · a poleward-propagating wave appears as a band sloping up to the right.
+      Event lines: fit of extremum time against distance (see Detected events), with speed; dots
+      mark each gauge's extremum, filled for maxima, open for minima. Best propagators: major, or
+      r² ≥ {{ BEST.r2 }} with a median size ≥ {{ BEST.prominence_cm }} cm.</p>
     <OffsetTraces v-if="sealevel" :sealevel="sealevel" :stations="gauges" />
   </section>
 </template>
