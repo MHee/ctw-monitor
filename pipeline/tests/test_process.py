@@ -206,16 +206,35 @@ def test_ioc_time_budget_keeps_newest_chunks(monkeypatch):
 
 
 def test_ioc_budget_is_shared_fairly_between_stations(monkeypatch):
-    """The last stations in the config must not be starved by backfill of the first ones."""
-    import threading
+    """The last stations in the config must not be starved by backfill of the first ones.
 
+    Two workers are simulated deterministically: stations alternate between two lanes, each
+    with its own clock (real threads sharing one fake clock made this test flaky)."""
     from ctw_monitor.sources import tide_gauges as tg
-    lock, now = threading.Lock(), [0]
+    lanes, cur = [0, 0], [0]
 
     def tick():
-        with lock:
-            now[0] += 100                                   # each clock read "takes" 100 s
-            return now[0]
+        lanes[cur[0]] += 100                                # each clock read "takes" 100 s
+        return lanes[cur[0]]
+
+    class LaneExecutor:
+        def __init__(self, max_workers):
+            self.n = max_workers
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def map(self, fn, items):
+            out = []
+            for i, it in enumerate(items):
+                cur[0] = i % self.n
+                out.append(fn(it))
+            return iter(out)
+
+    monkeypatch.setattr(tg, "ThreadPoolExecutor", LaneExecutor)
 
     def fake_ioc(code, a, b, **kw):
         idx = pd.date_range(a, b, freq="1min", inclusive="left")
