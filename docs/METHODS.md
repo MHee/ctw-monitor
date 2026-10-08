@@ -80,13 +80,37 @@ in distance between neighbouring gauges and masks spans with no gauge within 150
 
 ## Events and speed
 
-1. Find extrema of the 6-hourly anomaly at each gauge with prominence ≥ 3 cm and
-   separation ≥ 5 days.
-2. Associate extrema across gauges within a moving ±10-day window.
-3. Fit time against distance (`propagation_fit`); report speed with 95 % CI, n
-   stations and r². Use the timing of extrema; do not use lag correlation.
-4. Flag events whose fitted speed is outside 1–10 m/s or whose r² < 0.6 as
-   "not propagating".
+Defaults accepted by Martin on 2026-10-08, from a test on 399 days of live data
+(3 Sep 2025 to 8 Oct 2026, 26 gauges; write-up: https://claude.ai/artifact/Rj9djVHEYttEzzGbxUf1bd).
+
+1. Find extrema of the **hourly** Godin-filtered anomaly at each gauge (inside the
+   pipeline, not the 6-hourly product) with prominence ≥ 3 cm and separation ≥ 5 days.
+   Extrema at the edge of a data run are dropped.
+2. Associate extrema of the same type between **neighbouring gauges**, ordered by
+   along-coast distance. Each link joins the mutually nearest extrema within ±5 days.
+   A gauge without data around the time is skipped. If two chains share at least half
+   of their gauges within 2 days, keep the longer one.
+3. **Break the chain** at any gap of more than 1000 km between gauges. The Baja
+   California gap (about 1870 km) therefore separates a Mexico/Central America segment
+   from the US/Canada segment.
+4. An **event** needs ≥ 6 gauges spanning ≥ 1000 km, with a median extremum
+   prominence ≥ 5 cm.
+5. Fit time against distance (`propagation_fit`). Report the speed with its 95 % CI
+   (t distribution, n − 2 dof), n stations, span and r². Use the timing of extrema;
+   do not use lag correlation.
+6. **Propagating** means 1 ≤ speed ≤ 10 m/s, r² ≥ 0.7, and a lower 95 % bound > 0.
+   Anything else is "not propagating". A negative speed is labelled "southward".
+7. **Major** means a median prominence ≥ 15 cm (about 11 events a year, the top 15 %).
+
+Evidence, 2025-09 to 2026-10: the 17 May 2026 minimum gives 3.1–3.2 m/s, r² 0.86, 17
+gauges, under all 24 combinations of prominence 2–5 cm, separation 3–7 d and window
+5–10 d. The rules give 67 events, 29 of them propagating (median 4.0 m/s,
+interquartile range 3.2–5.2). Only 3 of the 11 major events propagate. The rest are
+winter storms that force the whole coast at once (r² ≈ 0) or travel south. The
+detector cannot tell them apart; the classification does. Sensitivity:
+r² 0.6/0.7/0.8 gives 33/29/18 propagating events; an upper bound of 6 m/s instead of 10
+changes 29 to 28; a ±5-day window gives the same events as ±10 days; a 7-day separation
+merges the late-May and early-June minima.
 
 The 2026 reference: minima-timing speed 3.1 m/s (San Francisco and Crescent City 3
 days before Neah Bay); Mexican pulse 1.95 ± 0.20 m/s (Acajutla 3 May to Puerto Vallarta

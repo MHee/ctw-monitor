@@ -80,7 +80,10 @@ A static dashboard on GitHub Pages, rebuilt daily by GitHub Actions, that shows:
 - **M4 – operations.** Raw-data cache, last-good fallback, `tides-fit` and
   `baseline` commands with Release-asset storage, keepalive decision, README badges.
 - **M5 – polish.** Station map (Leaflet + GMRT basemap), accessibility pass
-  (contrast, keyboard, alt text), Lighthouse ≥ 90, mobile layout.
+  (contrast, keyboard, alt text), Lighthouse ≥ 90, mobile layout. Explainer page in the
+  style of 3Blue1Brown (Martin, 2026-10-08): the 17 May 2026 minimum moving up the coast,
+  collapsed into the distance–time plot (slope = speed), set against a winter storm that
+  hits the whole coast at once (r² ≈ 0).
 
 ## Commands
 
