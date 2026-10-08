@@ -31,7 +31,7 @@ def timeseries_product(product: str, units: str, processing: str, index: pd.Date
         "index must be regular"
     return {
         "schema_version": SCHEMA_VERSION, "product": product, "units": units,
-        "processing": processing, "t0": iso(index[0]), "dt_s": int(dt), "n": int(len(index)),
+        "processing": processing, "t0": iso(index[0]), "dt_s": int(dt), "n": len(index),
         "stations": list(values),
         "values": {k: _clean(v, ndigits) for k, v in values.items()},
         "meta": meta or {},
@@ -43,7 +43,7 @@ def grid_product(processing: str, index: pd.DatetimeIndex, distance_km: np.ndarr
     return {
         "schema_version": SCHEMA_VERSION, "product": "alongshore_hovmoller", "units": "cm",
         "processing": processing, "t0": iso(index[0]),
-        "dt_s": int((index[1] - index[0]).total_seconds()), "n": int(len(index)),
+        "dt_s": int((index[1] - index[0]).total_seconds()), "n": len(index),
         "distance_km": _clean(distance_km, 1), "values": _clean(grid, ndigits),
         "mask_km": mask_km or [],
     }

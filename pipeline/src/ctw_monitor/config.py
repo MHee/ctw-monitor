@@ -1,6 +1,7 @@
 """Load config/stations.yaml and compute along-coast distances."""
 from __future__ import annotations
 
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +27,7 @@ def _hav(lat1, lon1, lat2, lon2):
 def densify_path(waypoints, step_km: float = 2.0):
     """Return (lat, lon, cumulative_km) arrays along the waypoint path (linear in lat/lon)."""
     lat, lon = [], []
-    for (_, la1, lo1), (_, la2, lo2) in zip(waypoints[:-1], waypoints[1:]):
+    for (_, la1, lo1), (_, la2, lo2) in pairwise(waypoints):
         n = max(2, int(np.ceil(_hav(la1, lo1, la2, lo2) / step_km)))
         f = np.linspace(0, 1, n, endpoint=False)
         lat.extend(la1 + f * (la2 - la1)); lon.extend(lo1 + f * (lo2 - lo1))

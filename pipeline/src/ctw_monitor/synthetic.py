@@ -5,6 +5,7 @@ a banner. Never deploy synthetic data to the public site.
 """
 from __future__ import annotations
 
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -58,7 +59,7 @@ def make_synthetic(out_dir: Path | str, end: str = "2026-10-01", days: int = 400
     sub = slice(None, None, 2)
     H = hovmoller({k: v[sub] for k, v in sl.items()}, dist, grid_km, gap_km=gap)
     xs = np.array(sorted(dist.values()))
-    mask = [[float(a), float(b)] for a, b in zip(xs[:-1], xs[1:]) if b - a > 2 * gap]
+    mask = [[float(a), float(b)] for a, b in pairwise(xs) if b - a > 2 * gap]
     write_json(grid_product(proc + "; grid 50 km x 12 h", idx[sub], grid_km, H, mask), out / "hovmoller.json")
 
     # NEPTUNE section: rise decreasing with depth (2026 ratios), basin-referenced

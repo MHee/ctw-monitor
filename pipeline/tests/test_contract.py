@@ -1,8 +1,6 @@
 """Synthetic products must satisfy the data contract; the contract is what the web app reads."""
 import json
 
-import numpy as np
-
 from ctw_monitor.products.validate import validate_dir
 from ctw_monitor.synthetic import make_synthetic
 

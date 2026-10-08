@@ -47,7 +47,7 @@ def run_build(out_dir, cache_dir=".cache/raw", last_good_dir=None, full=False, d
             try:
                 results.append(fn(sts, start, now))
                 statuses.append({"id": sid, "status": "ok", "last_success": iso(now)})
-            except Exception as e:  # fail soft, record why
+            except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8), record why
                 product_failed = True
                 statuses.append({"id": sid, "status": "failed", "message": f"{type(e).__name__}: {e}"[:300]})
                 if not isinstance(e, NotImplementedError):
