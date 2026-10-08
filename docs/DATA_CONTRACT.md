@@ -1,4 +1,4 @@
-# Data contract (schema_version 0.4.0)
+# Data contract (schema_version 0.5.0)
 
 Everything the web app reads lives under `data/` on the site. Every file validates
 against a JSON Schema in `schema/`; CI validates the synthetic set and each nightly
@@ -31,7 +31,7 @@ build validates before deploying.
 
 ```json
 {
-  "schema_version": "0.4.0",
+  "schema_version": "0.5.0",
   "product": "sealevel_anomaly",
   "units": "cm",
   "processing": "Despiked, detided (frozen constants), IB-corrected, Godin low-pass, minus 2013–2025 day-of-year mean; 6-hourly",
@@ -67,3 +67,10 @@ value_cm, prominence_cm for each gauge). See docs/METHODS.md, "Events and speed"
 0.4.0 adds `roni` to `context.json`, with the same shape as `oni` but without `total_c`:
 the Relative ONI, NOAA's official ENSO index since 2026. An index that could not be
 refreshed keeps its last good value with `"stale": true`.
+
+0.5.0 adds two fields to each event. `speed_loo` is the range of speeds with one gauge left
+out, or null when that range is unbounded. `segments` holds the same fit within each coast
+segment that has at least 3 of the event's gauges: `name`, `n_stations`, `first_station`,
+`last_station`, `speed_m_s`, `speed_ci95` and `r2`. The segments are Mexico and Central
+America, California (to Cape Mendocino), Oregon and Washington (to Cape Flattery), and
+British Columbia. The rules used are listed under `rules.regions`.

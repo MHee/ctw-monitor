@@ -114,6 +114,60 @@
                 }
               }
             }
+          },
+          "speed_loo": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "range of speeds with one gauge left out; null if unbounded"
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "n_stations",
+                "speed_m_s"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "n_stations": {
+                  "type": "integer"
+                },
+                "first_station": {
+                  "type": "string"
+                },
+                "last_station": {
+                  "type": "string"
+                },
+                "speed_m_s": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "r2": {
+                  "type": "number"
+                },
+                "speed_ci95": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            }
           }
         }
       }

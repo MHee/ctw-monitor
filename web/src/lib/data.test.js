@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { freshness, eventRows, ageDays, eventLine, isBest, eventMarkers, alignSeries, firstIndex, staleStations } from './data.js'
+import { freshness, eventRows, ageDays, eventLine, isBest, eventMarkers, alignSeries, firstIndex, staleStations, segmentSummary } from './data.js'
 import { diverging, robustLimit, BALANCE } from './colormap.js'
 
 describe('freshness', () => {
@@ -81,4 +81,12 @@ describe('staleStations', () => {
     expect(staleStations({ 'bottom pressure': bp }, { fgpd: 'FGPD' }, now).map((s) => s.name)).toEqual(['FGPD']))
   it('ignores products without last_valid', () => expect(staleStations({ t: { stations: ['a'], meta: {} } }, {}, now)).toEqual([]))
   it('flags an explicit null', () => expect(staleStations({ t: { stations: ['a'], meta: { a: { last_valid: null } } } }, {}, now)).toHaveLength(1))
+})
+
+describe('segmentSummary', () => {
+  it('names propagating, southward and lag-free segments', () => expect(segmentSummary({ segments: [
+    { name: 'California', speed_m_s: -24.5 },
+    { name: 'Oregon and Washington', speed_m_s: 1.94, speed_ci95: [1.32, 3.65] },
+    { name: 'British Columbia', speed_m_s: -3, speed_ci95: [-5, -2] },
+  ] })).toBe('Calif. no clear lag · Ore.–Wash. 1.9 m/s · B.C. southward'))
 })

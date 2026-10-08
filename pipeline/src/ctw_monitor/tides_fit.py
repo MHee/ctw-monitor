@@ -63,7 +63,11 @@ def fit_drift_models(cfg, constants: dict, end) -> tuple[dict, dict]:
         except ValueError as e:
             failed[k] = str(e)
             continue
-        models[k] = {**m, "deviceCode": dev, "basin_reference": refs}
+        # the model also holds the basin gauges' drift, so it is only valid for these devices
+        models[k] = {**m, "deviceCode": dev, "basin_reference": refs,
+                     "basin_devices": {r: {"deviceCode": info[r][0],
+                                           "deployed": info[r][1].strftime("%Y-%m-%d")}
+                                       for r in refs}}
         print(f"  drift {k}: {m['slope_cm_per_yr']} cm/yr, c {m['c_cm']:.1f} cm, "
               f"tau {m['tau_days']:.0f} d, rms {m['rms_cm']} cm ({m['fit_from']} to {m['fit_to']})",
               file=sys.stderr, flush=True)
