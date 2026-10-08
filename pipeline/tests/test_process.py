@@ -174,3 +174,32 @@ def test_coastal_path_in_stations_product():
     assert km == sorted(km)                                    # equatorward to poleward
     flattery = next(p for p in path if p["name"] == "Cape Flattery")
     assert abs(flattery["alongshore_km"]) < 30                 # 0 km is at Neah Bay
+
+
+def test_cache_empty_fetch_returns_empty_series(tmp_path):
+    c = RawCache(tmp_path)
+    s = c.get("x", "none", pd.Timestamp("2026-01-01", tz="UTC"), pd.Timestamp("2026-01-05", tz="UTC"),
+              lambda a, b: pd.Series(dtype=float))
+    assert s.empty and isinstance(s.index, pd.DatetimeIndex)
+
+
+def test_ioc_time_budget_keeps_newest_chunks(monkeypatch):
+    from ctw_monitor.sources import tide_gauges as tg
+    calls = []
+
+    def fake_ioc(code, a, b, **kw):
+        calls.append(pd.Timestamp(a))
+        idx = pd.date_range(a, b, freq="1min", inclusive="left")
+        return pd.DataFrame({"sensor": "rad", "slevel": 1.0}, index=idx)
+
+    clock = iter(range(0, 10_000, 100))                     # each chunk "takes" 100 s
+    monkeypatch.setattr(tg.md, "ioc_sea_level", fake_ioc)
+    monkeypatch.setattr(tg.time, "sleep", lambda s: None)
+    monkeypatch.setattr(tg.time, "monotonic", lambda: next(clock))
+    end = pd.Timestamp("2026-10-01", tz="UTC")
+    st = {"id": "acajutla", "provider_id": "acaj", "sensor": "rad"}
+    r = tg.fetch_ioc([st], end - pd.Timedelta(days=100), end, budget_s=350)
+    assert calls == sorted(calls, reverse=True)              # newest first
+    assert len(calls) < 10                                   # stopped by the budget
+    assert r.series["acajutla"].index.max() >= end - pd.Timedelta(hours=2)
+    assert "time_budget_reached_before" in r.meta["acajutla"]
