@@ -31,4 +31,11 @@ table.events .verdict { white-space: nowrap; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .oni-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
 .oni-cell { min-width: 0; }
+.oni-value { flex-wrap: wrap; }
+.oni-recent { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .15rem .6rem;
+  color: var(--muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.oni-recent li { white-space: nowrap; }
 .oni-name { font-weight: 600; color: var(--muted); }
+.event-mode { display: flex; flex-wrap: wrap; gap: .25rem 1rem; border: 0; padding: 0; margin: .5rem 0; }
+.event-mode legend { float: left; margin-right: .5rem; color: var(--muted); }
+.event-mode label { display: inline-flex; align-items: center; gap: .3rem; cursor: pointer; }

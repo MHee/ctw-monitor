@@ -52,3 +52,27 @@ export function ageDays(iso, now = Date.now()) {
   const t = Date.parse(iso || '')
   return Number.isFinite(t) ? Math.max(0, Math.floor((now - t) / 86400000)) : null
 }
+
+// Fitted line of an event in the distance-time plane, same orientation as the pipeline
+// (time regressed on distance, docs/METHODS.md item 5): t(km) = a + s * km, in ms.
+// kmOf: station id -> along-coast km. Returns null with fewer than two usable extrema.
+export function eventLine(ev, kmOf) {
+  const pts = (ev.extrema || [])
+    .map((e) => ({ km: kmOf[e.station], t: Date.parse(e.time), station: e.station }))
+    .filter((p) => Number.isFinite(p.km) && Number.isFinite(p.t))
+  if (pts.length < 2) return null
+  const mk = pts.reduce((a, p) => a + p.km, 0) / pts.length
+  const mt = pts.reduce((a, p) => a + p.t, 0) / pts.length
+  const sxx = pts.reduce((a, p) => a + (p.km - mk) ** 2, 0)
+  if (sxx === 0) return null
+  const s = pts.reduce((a, p) => a + (p.km - mk) * (p.t - mt), 0) / sxx
+  const kms = pts.map((p) => p.km)
+  return { a: mt - s * mk, s, kmMin: Math.min(...kms), kmMax: Math.max(...kms), pts }
+}
+
+// "Best propagators" highlighted on the plots: propagating and either major or clean and
+// sizeable (r² >= 0.9, median size >= 10 cm). 9 of 34 propagating events in Oct 2026.
+export const BEST = { r2: 0.9, prominence_cm: 10 }
+export function isBest(e) {
+  return !!e.propagating && (!!e.major || (e.r2 >= BEST.r2 && e.prominence_cm >= BEST.prominence_cm))
+}

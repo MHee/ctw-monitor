@@ -30,7 +30,7 @@ const DATA_NOTE = 'Data: Ocean Networks Canada (Oceans 3.0), DFO-CHS, NOAA CO-OP
         <StatusPanel :manifest="d.manifest" />
         <ContextPanel v-if="d.context" :context="d.context" />
       </div>
-      <PropagationPanel v-if="d.hovmoller" :grid="d.hovmoller" :sealevel="d.sealevel" :stations="d.stations" />
+      <PropagationPanel v-if="d.hovmoller" :grid="d.hovmoller" :sealevel="d.sealevel" :stations="d.stations" :events="d.events" />
       <MapPanel v-if="d.stations" :stations="d.stations" :sealevel="d.sealevel" />
       <div class="two-col">
         <LineChartPanel v-if="d.bottom_pressure" title="NEPTUNE cross-margin bottom pressure"

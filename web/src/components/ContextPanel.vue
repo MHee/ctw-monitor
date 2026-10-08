@@ -21,9 +21,9 @@ const indices = computed(() => [
           <span class="oni-number">{{ sign(i.d.anomaly_c) }} °C</span>
           <span>{{ i.d.season }} {{ i.d.year }}<template v-if="i.d.stale"> (not refreshed)</template></span>
         </p>
-        <p v-if="i.d.recent?.length" class="panel-note num">
-          <template v-for="(r, j) in i.d.recent.slice(-6)" :key="`${r.season}${r.year}`">{{ j ? ' · ' : '' }}{{ r.season }} {{ sign(r.anomaly_c) }}</template>
-        </p>
+        <ul v-if="i.d.recent?.length" class="oni-recent" :aria-label="`${i.name}, last six seasons`">
+          <li v-for="r in i.d.recent.slice(-6)" :key="`${r.season}${r.year}`">{{ r.season }} {{ sign(r.anomaly_c) }}</li>
+        </ul>
         <p class="panel-note"><a :href="i.d.info_url || i.d.source_url" target="_blank" rel="noopener">{{ i.link }}</a></p>
       </div>
     </div>
