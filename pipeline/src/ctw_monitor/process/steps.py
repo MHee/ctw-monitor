@@ -138,6 +138,24 @@ def remove_linear_drift(s: pd.Series) -> pd.Series:
     return s - (a * x + b)
 
 
+def model_mismatch(model: dict | None, device: str | None, devices: dict[str, str],
+                   refs: list[str]) -> str | None:
+    """Why a frozen drift model does not apply now, or None if it does (review item 5)."""
+    if not model:
+        return "no frozen drift model"
+    if model.get("deviceCode") != device:
+        return f"model is for {model.get('deviceCode')}, now {device}"
+    basin = model.get("basin_devices")
+    if basin is None:
+        return None                    # older model: section device checked only
+    if sorted(basin) != sorted(refs):
+        return f"basin gauges changed ({', '.join(sorted(basin))} -> {', '.join(sorted(refs))})"
+    for r, d in basin.items():
+        if devices.get(r) != d["deviceCode"]:
+            return f"basin gauge {r} is now {devices.get(r)}, model used {d['deviceCode']}"
+    return None
+
+
 def bottom_pressure_chain(pressure_pa: dict[str, pd.Series], constants: dict,
                           section_ids: list[str], ref_ids: list[str],
                           drift_models: dict[str, dict] | None = None,
@@ -151,8 +169,10 @@ def bottom_pressure_chain(pressure_pa: dict[str, pd.Series], constants: dict,
     mean. Never IB-corrected (rule 2): a BPR already sees only the departure from the
     inverse-barometer response.
 
-    Drift: the frozen per-deployment model (process/drift.py) when one exists for the device
-    now deployed; otherwise a straight line over the window, and meta says which."""
+    Drift: the frozen per-deployment model (process/drift.py) when it still applies: same
+    section device, and (when the model records them) the same basin devices and basin
+    gauges, since the model was fitted to section minus basin and so holds the basin drift
+    too. Otherwise a straight line over the window, and meta says which."""
     drift_models, devices = drift_models or {}, devices or {}
     detided, meta = {}, {}
     for k, s in pressure_pa.items():
@@ -165,13 +185,16 @@ def bottom_pressure_chain(pressure_pa: dict[str, pd.Series], constants: dict,
             continue
         x = detided[k] - detided[k].mean() - ref
         model = drift_models.get(k)
-        if model and model.get("deviceCode") == devices.get(k):
+        why_not = model_mismatch(model, devices.get(k), devices, refs)
+        if why_not is None:
             x = x - drift.evaluate(model, x.index)
             how = (f"frozen exp + linear fit ({model['fit_from']} to {model['fit_to']}, "
                    f"{model['slope_cm_per_yr']} cm/yr)")
+            if "basin_devices" not in model:
+                how += "; basin devices not recorded in this model"
         else:
             x = remove_linear_drift(x)
-            how = "linear over window (no frozen drift model for this device)"
+            how = f"linear over window ({why_not})"
         out[k] = anomaly_doy(godin(x), None)
         meta[k] |= {"basin_reference": refs, "drift": how}
     return out, meta

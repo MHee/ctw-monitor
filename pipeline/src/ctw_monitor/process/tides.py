@@ -72,18 +72,32 @@ def _design(index, freqs: dict[str, float]):
     return names, f * np.cos(arg), f * np.sin(arg), t
 
 
-def fit_constants(s: pd.Series, min_hours: int = 4000) -> dict:
+MIN_SPAN_DAYS = 183.0      # Rayleigh: K2/S2 and P1/K1 need a span of 1/df = 4383 h
+MAX_CONDITION = 100.0      # design matrix condition number; well-separated fits are < 10
+
+
+def fit_constants(s: pd.Series, min_hours: int = 4000, min_span_days: float = MIN_SPAN_DAYS,
+                  max_condition: float = MAX_CONDITION) -> dict:
     """Fit constants to an hourly series (cm, gaps allowed). Returns the per-station record.
 
-    Raises ValueError if fewer than min_hours valid values (about 5.5 months: K2/S2 and
-    P1/K1 need ~183 days to separate)."""
+    Raises ValueError if there are fewer than min_hours valid values, if the valid record
+    spans less than min_span_days (the count alone does not separate K2 from S2 or P1 from K1;
+    Claude for Science review 2026-10-08, item 4), or if gaps leave the least-squares problem
+    ill-conditioned."""
     ok = s.notna().to_numpy()
     if ok.sum() < min_hours:
         raise ValueError(f"only {int(ok.sum())} valid hours (< {min_hours})")
+    span = (s.index[ok][-1] - s.index[ok][0]) / pd.Timedelta(days=1)
+    if span < min_span_days:
+        raise ValueError(f"record spans {span:.0f} days (< {min_span_days:.0f}; K2/S2, P1/K1 "
+                         f"not separable)")
     freqs = constituents()
     names, C, S, t = _design(s.index, freqs)
     tc = (t - t[ok].mean()) / 8766.0                      # trend in cm per year
     A = np.column_stack([np.ones_like(t), tc, C, S])
+    cond = float(np.linalg.cond(A[ok]))
+    if cond > max_condition:
+        raise ValueError(f"design matrix condition number {cond:.0f} (> {max_condition:.0f})")
     coef, *_ = np.linalg.lstsq(A[ok], s.to_numpy()[ok], rcond=None)
     k = len(names)
     a, b = coef[2:2 + k], coef[2 + k:]
@@ -92,6 +106,7 @@ def fit_constants(s: pd.Series, min_hours: int = 4000) -> dict:
         "start": s.index[ok][0].strftime("%Y-%m-%dT%H:%M:%SZ"),
         "end": s.index[ok][-1].strftime("%Y-%m-%dT%H:%M:%SZ"),
         "n_hours": int(ok.sum()),
+        "condition_number": round(cond, 1),
         "rms_residual_cm": round(float(np.sqrt(np.mean(resid ** 2))), 2),
         "constituents": {n: {"amp_cm": round(float(np.hypot(a[i], b[i])), 3),
                              "phase_deg": round(float(np.degrees(np.arctan2(b[i], a[i])) % 360), 2)}

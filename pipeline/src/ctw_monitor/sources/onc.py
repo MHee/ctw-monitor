@@ -122,7 +122,7 @@ def deployments(location_code: str, device_category: str, start, end) -> list[di
         b = pd.Timestamp(d["end"]) if d.get("end") else pd.Timestamp(end)
         if a < pd.Timestamp(end) and b > pd.Timestamp(start):
             out.append({"deviceCode": d["deviceCode"], "begin": max(a, pd.Timestamp(start)),
-                        "end": min(b, pd.Timestamp(end))})
+                        "end": min(b, pd.Timestamp(end)), "deployed": a})
     return sorted(out, key=lambda d: d["begin"])
 
 
@@ -191,7 +191,7 @@ def _location_series(st, category, start, end, names, exclude, to_series):
             continue
         parts.append(to_series(raw))
         used.append({"deviceCode": d["deviceCode"], "sensorName": name,
-                     "from": d["begin"].strftime("%Y-%m-%d")})
+                     "from": d["deployed"].strftime("%Y-%m-%d")})   # deployment start, not window
     if not parts:
         return empty_series(), {"devices": used}
     s = pd.concat(parts).sort_index()

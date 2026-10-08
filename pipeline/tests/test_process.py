@@ -249,3 +249,44 @@ def test_ioc_budget_is_shared_fairly_between_stations(monkeypatch):
     assert set(r.series) == {st["id"] for st in sts}         # nobody starved
     for sid, sl in r.series.items():
         assert sl.index.max() >= end - pd.Timedelta(hours=2), sid
+
+
+def test_tidal_fit_needs_a_rayleigh_span():
+    """Review item 4: enough valid hours but a span under 183 days must not pass."""
+    import pytest
+
+    from ctw_monitor.process import tides
+    idx = pd.date_range("2026-01-01", periods=170 * 24, freq="1h", tz="UTC")
+    t = np.arange(idx.size)
+    s = pd.Series(50 * np.cos(2 * np.pi * t / 12.42) + 20 * np.cos(2 * np.pi * t / 23.93), index=idx)
+    with pytest.raises(ValueError, match="spans"):
+        tides.fit_constants(s)
+    idx2 = pd.date_range("2026-01-01", periods=200 * 24, freq="1h", tz="UTC")
+    t2 = np.arange(idx2.size)
+    rec = tides.fit_constants(pd.Series(50 * np.cos(2 * np.pi * t2 / 12.42), index=idx2))
+    assert rec["condition_number"] < 100
+
+
+def test_drift_model_dropped_when_a_basin_device_changes():
+    """Review item 5: the model holds basin drift too, so a basin swap invalidates it."""
+    from ctw_monitor.process.steps import model_mismatch
+    m = {"deviceCode": "BPR-A", "basin_devices": {"cne20": {"deviceCode": "B1"},
+                                                  "cbc27": {"deviceCode": "B2"}}}
+    refs = ["cne20", "cbc27"]
+    ok = {"ncbc": "BPR-A", "cne20": "B1", "cbc27": "B2"}
+    assert model_mismatch(m, "BPR-A", ok, refs) is None
+    assert "cne20" in model_mismatch(m, "BPR-A", {**ok, "cne20": "B9"}, refs)
+    assert "basin gauges changed" in model_mismatch(m, "BPR-A", ok, ["cne20"])
+    assert "now BPR-Z" in model_mismatch(m, "BPR-Z", ok, refs)
+    assert model_mismatch({"deviceCode": "BPR-A"}, "BPR-A", ok, refs) is None   # older model
+
+
+def test_device_meta_carries_the_deployment_start(monkeypatch):
+    """Review item 9: devices[].from is the deployment start, not the fetch window start."""
+    from ctw_monitor.sources import onc
+    monkeypatch.setattr(onc, "api_get", lambda ep, **kw: [
+        {"deviceCode": "RBRQUARTZ3BPR202320", "begin": "2023-07-15T00:00:00.000Z", "end": None}])
+    deps = onc.deployments("NCBC", "BPR", pd.Timestamp("2026-10-05", tz="UTC"),
+                           pd.Timestamp("2026-10-08", tz="UTC"))
+    assert deps[0]["begin"] == pd.Timestamp("2026-10-05", tz="UTC")
+    assert deps[0]["deployed"] == pd.Timestamp("2023-07-15", tz="UTC")
