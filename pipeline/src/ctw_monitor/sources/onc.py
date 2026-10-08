@@ -1,4 +1,7 @@
-"""ONC Oceans 3.0 fetchers (M2). Token from ONC_API_TOKEN via vendor.onc_api; never logged.
+"""ONC Oceans 3.0 fetchers (M2). The token is never logged (rule 7). It comes from the
+environment variable ONC_API_TOKEN (the repository secret in Actions) or, for local runs,
+from the OS credential store (Windows Credential Manager), set once with
+    python -m keyring set ctw-monitor ONC_API_TOKEN
 
 Devices are found at run time from /deployments (location + device category), so swaps
 are handled and config needs no device codes. Each deployment overlapping the window is
@@ -12,6 +15,7 @@ chunk by year (multi-year requests time out at 120 s); qaqcFlag {1, 2, 7} is goo
 """
 from __future__ import annotations
 
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -20,7 +24,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from ..vendor.onc_api import ONC_API, onc_token
+from ..vendor.onc_api import ONC_API
 from .base import SourceResult
 from .cache import RawCache, empty_series
 from .tide_gauges import hourly_centred
@@ -34,8 +38,28 @@ PRESSURE_EXCLUDE = re.compile(r"raw|reference|uncompensated|compromised|residual
 TEMPERATURE_NAMES = ["Temperature"]
 
 
+KEYRING_SERVICE = "ctw-monitor"
+
+
 class NoData(Exception):
     """ONC errorCode 127 for the requested window: no data, not a failure."""
+
+
+def _keyring_token() -> str | None:
+    """Token from the OS credential store, if keyring is installed (optional `local` extra)."""
+    try:
+        import keyring
+        return keyring.get_password(KEYRING_SERVICE, "ONC_API_TOKEN")
+    except Exception:  # noqa: BLE001 -- no keyring, no backend, locked store: just no token
+        return None
+
+
+def onc_token() -> str:
+    tok = os.environ.get("ONC_API_TOKEN") or _keyring_token()
+    if not tok:
+        raise RuntimeError("no ONC token: set ONC_API_TOKEN, or store it locally with "
+                           "`python -m keyring set ctw-monitor ONC_API_TOKEN`")
+    return tok
 
 
 def scrub(msg: str) -> str:

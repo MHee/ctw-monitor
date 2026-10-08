@@ -10,6 +10,7 @@ dependencies:
   - requests
   - pyyaml
   - jsonschema
+  - keyring       # local ONC token in Windows Credential Manager
   - pytest
   - ruff
   - nodejs=22

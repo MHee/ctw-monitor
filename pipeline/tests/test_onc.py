@@ -25,9 +25,21 @@ class Resp:
         return self._p
 
 
+@pytest.fixture(autouse=True)
+def no_keyring(monkeypatch):
+    """Tests never read the developer's real credential store."""
+    monkeypatch.setattr(onc, "_keyring_token", lambda: None)
+
+
 @pytest.fixture
 def token(monkeypatch):
     monkeypatch.setenv("ONC_API_TOKEN", FAKE)
+
+
+def test_token_from_keyring_when_env_missing(monkeypatch):
+    monkeypatch.delenv("ONC_API_TOKEN", raising=False)
+    monkeypatch.setattr(onc, "_keyring_token", lambda: FAKE)
+    assert onc.onc_token() == FAKE
 
 
 def test_scrub_removes_token(token):
