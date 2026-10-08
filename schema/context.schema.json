@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "context.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "oni"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^0\\.\\d+\\.\\d+$"
+    },
+    "oni": {
+      "type": "object",
+      "required": [
+        "season",
+        "year",
+        "anomaly_c",
+        "source_url"
+      ],
+      "properties": {
+        "season": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "year": {
+          "type": "integer"
+        },
+        "anomaly_c": {
+          "type": "number"
+        },
+        "total_c": {
+          "type": "number"
+        },
+        "source_url": {
+          "type": "string"
+        },
+        "info_url": {
+          "type": "string"
+        },
+        "fetched": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "recent": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "season",
+              "year",
+              "anomaly_c"
+            ],
+            "properties": {
+              "season": {
+                "type": "string"
+              },
+              "year": {
+                "type": "integer"
+              },
+              "anomaly_c": {
+                "type": "number"
+              },
+              "total_c": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

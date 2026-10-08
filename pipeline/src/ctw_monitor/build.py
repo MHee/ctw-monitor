@@ -19,10 +19,11 @@ import pandas as pd
 from . import SCHEMA_VERSION, __version__
 from .config import alongshore_km, enabled, load_config
 from .process.steps import bottom_pressure_chain, gauge_chain, pressure_for
+from .products.events import events_product
 from .products.sealevel import hovmoller_product, stations_product
 from .products.validate import validate_dir
 from .products.writer import iso, timeseries_product, write_json
-from .sources import onc, tide_gauges
+from .sources import context, onc, tide_gauges
 from .sources.cache import RawCache
 from .sources.onc import scrub
 
@@ -188,7 +189,7 @@ def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
     idx6 = pd.date_range(start.ceil("6h"), now.floor("6h"), freq="6h")
     coords = {g["id"]: (g["lat"], g["lon"]) for g in gauges}
     pressures = {k: v.reindex(hourly) for r in results for k, v in r.air_pressure_hpa.items()}
-    values, meta = {}, {}
+    values, meta, hourly_lp = {}, {}, {}
     for r in results:
         for k, s in r.series.items():
             try:
@@ -199,6 +200,7 @@ def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
                 missing[k] = r.source_id
                 log(f"{k}: processing failed: {e}")
                 continue
+            hourly_lp[k] = lp.reindex(hourly)
             v = lp.reindex(idx6)
             values[k] = v.to_numpy()
             meta[k] = {**r.meta.get(k, {}), **m, "ib_source": ib_src,
@@ -211,6 +213,8 @@ def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
         if k in lg_vals:
             values[k] = lg_vals[k].reindex(idx6).to_numpy()
             meta[k] = {**lg_meta.get(k, {}), "stale": True}
+            hourly_lp[k] = (lg_vals[k].reindex(lg_vals[k].index.union(hourly))
+                            .interpolate(limit=5, limit_area="inside").reindex(hourly))
             stale_sources.add(src)
     for st in statuses:
         if st["status"] == "failed" and st["id"] in stale_sources:
@@ -235,7 +239,28 @@ def build_sealevel(cfg, out: Path, start, now, cache: RawCache, constants: dict,
                out / "sealevel.json")
     write_json(hovmoller_product(values, idx6, dist, cfg["coastal_path"]["gap_mask_km"], proc),
                out / "hovmoller.json")
+    ev = events_product({k: hourly_lp[k] for k in order if k in hourly_lp}, dist)
+    write_json(ev, out / "events.json")
+    log(f"events: {len(ev['events'])} ({sum(e['propagating'] for e in ev['events'])} "
+        f"propagating, {sum(e['major'] for e in ev['events'])} major)")
     return statuses
+
+
+def build_context(cfg, out: Path, now, last_good_dir=None) -> dict:
+    """NOAA CPC ONI for the context panel. Context only; fails soft like any source."""
+    product = "context.json"
+    try:
+        oni = context.fetch_oni(cfg["context"]["oni_url"])
+    except Exception as e:  # noqa: BLE001 -- fail soft per source (rule 8)
+        msg = scrub(f"{type(e).__name__}: {e}")[:300]
+        log(f"noaa_oni: failed: {msg}")
+        status = {"id": "noaa_oni", "status": "failed", "message": msg}
+        _fallback(product, out, last_good_dir, status)
+        return status
+    write_json({"schema_version": SCHEMA_VERSION, "oni": {**oni, "fetched": iso(now)}},
+               out / product)
+    log(f"noaa_oni: {oni['season']} {oni['year']} {oni['anomaly_c']:+.2f}")
+    return {"id": "noaa_oni", "status": "ok", "last_success": iso(now)}
 
 
 def run_build(out_dir, cache_dir=".cache/raw", last_good_dir=None, full=False, days=400,
@@ -253,6 +278,7 @@ def run_build(out_dir, cache_dir=".cache/raw", last_good_dir=None, full=False, d
     statuses.append(build_bottom_pressure(cfg, out, start, now, cache, constants, last_good_dir,
                                           drift_models))
     statuses.append(build_temperature(cfg, out, start, now, cache, last_good_dir))
+    statuses.append(build_context(cfg, out, now, last_good_dir))
     manifest = {
         "schema_version": SCHEMA_VERSION, "generated_at": iso(now), "synthetic": False,
         "pipeline": {"version": __version__, "git_sha": os.environ.get("GITHUB_SHA", "local")[:12]},

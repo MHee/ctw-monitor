@@ -11,7 +11,7 @@ from ..config import REPO
 SCHEMAS = {
     "manifest.json": "manifest", "stations.json": "stations", "sealevel.json": "timeseries",
     "bottom_pressure.json": "timeseries", "temperature.json": "timeseries",
-    "hovmoller.json": "grid", "events.json": "events",
+    "hovmoller.json": "grid", "events.json": "events", "context.json": "context",
 }
 
 

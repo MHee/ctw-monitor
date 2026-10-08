@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 
 FILES = ["manifest.json", "stations.json", "sealevel.json", "hovmoller.json",
-         "bottom_pressure.json", "temperature.json", "events.json"]
+         "bottom_pressure.json", "temperature.json", "events.json", "context.json"]
 
 
 def pull_last_good(site_url: str, out_dir: Path | str, timeout: int = 30) -> list[str]:
