@@ -39,3 +39,5 @@ table.events .verdict { white-space: nowrap; }
 .event-mode { display: flex; flex-wrap: wrap; gap: .25rem 1rem; border: 0; padding: 0; margin: .5rem 0; }
 .event-mode legend { float: left; margin-right: .5rem; color: var(--muted); }
 .event-mode label { display: inline-flex; align-items: center; gap: .3rem; cursor: pointer; }
+.stale-stations { margin: .5rem 0 0; font-size: .875rem; }
+.range-switch { margin: 0; }

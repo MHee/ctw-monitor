@@ -76,3 +76,49 @@ export const BEST = { r2: 0.9, prominence_cm: 10 }
 export function isBest(e) {
   return !!e.propagating && (!!e.major || (e.r2 >= BEST.r2 && e.prominence_cm >= BEST.prominence_cm))
 }
+
+// Time at which each best-propagator event passes along-coast distance `km`, from its fitted
+// line. Only events whose gauges span km (within tolKm) count: no extrapolation across gaps.
+export function eventMarkers(events, kmOf, km, tolKm = 150) {
+  const out = []
+  for (const ev of events?.events || []) {
+    if (!isBest(ev)) continue
+    const f = eventLine(ev, kmOf)
+    if (!f || km < f.kmMin - tolKm || km > f.kmMax + tolKm) continue
+    out.push({ t: f.a + f.s * km, label: `${ev.type === 'minimum' ? 'min' : 'max'} ${ev.speed_m_s?.toFixed(1)} m/s`, id: ev.id })
+  }
+  return out.sort((a, b) => a.t - b.t)
+}
+
+// Values of station `id` in a regular product, read at the given times (ms); null where the
+// product has no sample within half a step.
+export function alignSeries(product, id, times) {
+  const v = product?.values?.[id]
+  if (!v) return null
+  const t0 = Date.parse(product.t0), dt = product.dt_s * 1000
+  return times.map((t) => {
+    const i = Math.round((t - t0) / dt)
+    return i >= 0 && i < v.length && Math.abs(t - (t0 + i * dt)) <= dt / 2 ? v[i] : null
+  })
+}
+
+// First index of a regular product at or after `startMs` (0 if none given).
+export function firstIndex(product, startMs) {
+  if (!Number.isFinite(startMs)) return 0
+  const t0 = Date.parse(product.t0), dt = product.dt_s * 1000
+  return Math.min(product.n, Math.max(0, Math.ceil((startMs - t0) / dt)))
+}
+
+// Stations whose latest valid value (meta.last_valid) is older than `days`, across products.
+export function staleStations(products, names = {}, now = Date.now(), days = 3) {
+  const out = []
+  for (const [label, p] of Object.entries(products)) {
+    for (const id of p?.stations || []) {
+      const last = p.meta?.[id]?.last_valid
+      if (last === undefined) continue                 // product does not record it
+      const age = ageDays(last, now)
+      if (last === null || age === null || age > days) out.push({ id, name: names[id] || id, label, last, age })
+    }
+  }
+  return out
+}

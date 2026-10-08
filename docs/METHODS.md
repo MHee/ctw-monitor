@@ -58,8 +58,11 @@ functions are in `pipeline/src/ctw_monitor/vendor/ctw_analysis.py`.
    high-pass removed the real seasonal signal (r = 0.61).
 6. Godin low-pass, minus the window mean, 6-hourly.
 
-Reference values from the 2026 event (22 May–1 Jun rise): FGPD 1334 Pa, NCBC 1000 Pa,
-NC89 488 Pa, Cascadia Basin 216 Pa.
+Reference values from the 2026 event (22 May–1 Jun rise). Absolute, from the 2026 report:
+FGPD 1334 Pa, NCBC 1000 Pa, NC89 488 Pa, Cascadia Basin 216 Pa. Relative to the Cascadia
+Basin, as this page shows them (live product, 3-day means 20–22 May to 31 May–2 Jun):
+FGPD 1100 Pa (10.9 cm), NCBC 720 Pa (7.2 cm), NC89 262 Pa (2.6 cm). The basin itself rose,
+so basin-relative rises are smaller than absolute ones.
 
 ## Temperature
 
@@ -115,7 +118,7 @@ Defaults accepted by Martin on 2026-10-08, from a test on 399 days of live data
 Evidence, 2025-09 to 2026-10 (US/Canada segment, 6-hourly product): the 17 May 2026
 minimum is found with r² 0.86 and 17 gauges under all 24 combinations of prominence
 2–5 cm, separation 3–7 d and window 5–10 d. Its speed is 3.76 m/s [3.08, 4.82] with time on
-distance (3.1–3.2 m/s with the original distance-on-time fit). The rules give 67 events,
+distance (3.23 m/s on the same chain with the old distance-on-time fit). The rules give 67 events,
 29 of them propagating (median 4.5 m/s, interquartile range 3.3–5.7). Only 3 of the 11
 major events propagate. The rest are
 winter storms that force the whole coast at once (r² ≈ 0) or travel south. The
@@ -124,9 +127,12 @@ r² 0.6/0.7/0.8 gives 33/29/19 propagating events; an upper bound of 6 m/s inste
 changes 29 to 23; a ±5-day window gives the same events as ±10 days; a 7-day separation
 merges the late-May and early-June minima.
 
-The 2026 reference: minima-timing speed 3.8 m/s [3.1, 4.8] with time on distance; it was
-quoted as 3.1 m/s from the original distance-on-time fit (San Francisco and Crescent City
-3 days before Neah Bay); Mexican pulse 1.95 ± 0.20 m/s (Acajutla 3 May to Puerto Vallarta
+The 2026 reference: the report's minima give 3.1 m/s [2.3, 4.8], time on distance, 10
+gauges from San Francisco to Winter Harbour (San Francisco and Crescent City 3 days before
+Neah Bay). This pipeline's 17-gauge chain (Port San Luis to Prince Rupert) gives 3.76 m/s.
+The difference comes from the chain, not the fit: adding Prince Rupert alone raises the
+report's fit to 3.9 m/s, and Port San Luis to Winter Harbour gives 3.2 m/s (Claude for
+Science review, `feedback/2026-10-08_ctw-monitor_methods-review.md`, item 1); Mexican pulse 1.95 ± 0.20 m/s (Acajutla 3 May to Puerto Vallarta
 13 May), not traceable north of Puerto Vallarta for lack of Baja gauges.
 
 ## Wording on the page

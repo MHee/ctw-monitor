@@ -25,16 +25,20 @@ def coastal_path(cfg: dict) -> list[dict]:
 
 
 def stations_product(cfg: dict, dist: dict[str, float]) -> dict:
+    """NEPTUNE sites get an along-coast distance too: their projection onto the coastal path,
+    so the panels can mark when a coastal event passes them."""
     gauges = [g for g in enabled(cfg["tide_gauges"]) if g["id"] in dist]
+    bprs, ctds = enabled(cfg["bottom_pressure"]), cfg["temperature"]
+    onc_km = alongshore_km(bprs + ctds, cfg)
     return {"schema_version": SCHEMA_VERSION, "coastal_path": coastal_path(cfg), "stations": (
         [{"id": g["id"], "name": g["name"], "kind": "tide_gauge", "provider": g["provider"],
           "lat": g["lat"], "lon": g["lon"], "alongshore_km": dist[g["id"]]} for g in gauges]
         + [{"id": b["id"], "name": b["location_code"], "kind": "bottom_pressure",
-            "provider": "onc", "lat": b["lat"], "lon": b["lon"], "depth_m": b["depth_m"]}
-           for b in enabled(cfg["bottom_pressure"])]
+            "provider": "onc", "lat": b["lat"], "lon": b["lon"], "depth_m": b["depth_m"],
+            "alongshore_km": onc_km[b["id"]]} for b in bprs]
         + [{"id": c["id"], "name": c["location_code"], "kind": "ctd", "provider": "onc",
-            "lat": c["lat"], "lon": c["lon"], "depth_m": c["depth_m"]}
-           for c in cfg["temperature"]])}
+            "lat": c["lat"], "lon": c["lon"], "depth_m": c["depth_m"],
+            "alongshore_km": onc_km[c["id"]]} for c in ctds])}
 
 
 def hovmoller_product(values: dict[str, np.ndarray], index: pd.DatetimeIndex,

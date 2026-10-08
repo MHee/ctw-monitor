@@ -35,8 +35,8 @@ A static dashboard on GitHub Pages, rebuilt daily by GitHub Actions, that shows:
    along-coast distance. Do not use whole-window lag correlation: weather forces the
    whole coast at once and biases the speed fast (2026: 3.1 m/s from the minima,
    about 6 m/s from lag correlation). Regress time on distance, not distance on time:
-   timing errors bias the latter low (2026 minima: 3.8 m/s time-on-distance; Martin,
-   2026-10-08; docs/METHODS.md).
+   timing errors bias the latter low (Martin, 2026-10-08; docs/METHODS.md). The 2026
+   report's 3.1 m/s was already time on distance; the skill's packaged function was not.
 4. **Bottom pressure is basin-referenced.** Subtract the mean of the Cascadia Basin
    gauges (CNE20, CBC27 CORK-1027C and, if added, the CBC27 APT) before filtering.
    CORK and APT seafloor gauges are as good as BPRs. Exclude CQS64 (CORK-1364A):
