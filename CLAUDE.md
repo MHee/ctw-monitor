@@ -34,7 +34,9 @@ A static dashboard on GitHub Pages, rebuilt daily by GitHub Actions, that shows:
 3. **Propagation speed comes from the timing of the minima/maxima**, fitted against
    along-coast distance. Do not use whole-window lag correlation: weather forces the
    whole coast at once and biases the speed fast (2026: 3.1 m/s from the minima,
-   about 6 m/s from lag correlation).
+   about 6 m/s from lag correlation). Regress time on distance, not distance on time:
+   timing errors bias the latter low (2026 minima: 3.8 m/s time-on-distance; Martin,
+   2026-10-08; docs/METHODS.md).
 4. **Bottom pressure is basin-referenced.** Subtract the mean of the Cascadia Basin
    gauges (CNE20, CBC27 CORK-1027C and, if added, the CBC27 APT) before filtering.
    CORK and APT seafloor gauges are as good as BPRs. Exclude CQS64 (CORK-1364A):
@@ -147,6 +149,15 @@ cd web; npm run dev; npm run build; npx vitest run
 - ERA5 via the CDS API: one year per request, results come from
   `object-store.os-api.cci2.ecmwf.int`; latency about 5 days. Do not put CDS in the
   nightly path. See `docs/ARCHITECTURE.md` for the IB fallback plan.
+
+## Feedback to the Claude for Science skills
+
+`feedback/` (gitignored) is a directory junction to `OneDrive\Claude_Exchange\feedback\`,
+where Claude for Science instances read reports on the vendored skills and reply. One file
+per item; protocol in `feedback/README.md`. File a report when you fix or work around
+something in `vendor/`, and check at the start of a session for items whose status changed
+(`answered`, `accepted`, `declined`) and act on the replies. On a fresh clone, recreate the
+link with `cmd /c mklink /J feedback C:\Users\mheesema\OneDrive\Claude_Exchange\feedback`.
 
 ## Decisions (Oct 2026)
 

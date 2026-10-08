@@ -121,17 +121,19 @@ def segments(dist_km: dict[str, float], max_gap_km: float) -> list[list[str]]:
 
 
 def fit_chain(chain: list[Extremum], dist_km: dict[str, float]) -> dict:
-    """Peak-timing propagation fit with a 95 % t interval on the speed."""
+    """Peak-timing propagation fit: time regressed on distance (timing carries the error).
+    The 95 % interval is a t interval on the slowness, inverted; if it includes zero
+    slowness the speed has no finite bound and speed_ci95 is None."""
     times = pd.DatetimeIndex([e.time for e in chain])
     xs = np.array([dist_km[e.station] for e in chain], float)
     n = len(chain)
     if n < 3 or times.max() == times.min():
         return {"speed_m_s": None, "speed_ci95": None, "r2": 0.0}
     f = ca.propagation_fit(times, xs)
-    tq = float(stats.t.ppf(0.975, n - 2))
-    lo, hi = f["speed_ms"] - tq * f["se_ms"], f["speed_ms"] + tq * f["se_ms"]
-    return {"speed_m_s": float(f["speed_ms"]), "speed_ci95": [float(lo), float(hi)],
-            "r2": float(f["r"] ** 2)}
+    s, q = f["slowness_s_per_m"], float(stats.t.ppf(0.975, n - 2)) * f["slowness_se"]
+    ci = sorted([1 / (s + q), 1 / (s - q)]) if abs(s) > q else None
+    return {"speed_m_s": float(f["speed_ms"]) if s != 0 else None,
+            "speed_ci95": [float(v) for v in ci] if ci else None, "r2": float(f["r"] ** 2)}
 
 
 def classify(fit: dict, rules: EventRules = DEFAULT_RULES) -> str:
@@ -140,7 +142,8 @@ def classify(fit: dict, rules: EventRules = DEFAULT_RULES) -> str:
     if c is None:
         return "not propagating"
     lo, hi = rules.speed_range_m_s
-    if lo <= c <= hi and fit["r2"] >= rules.min_r2 and fit["speed_ci95"][0] > 0:
+    ci = fit["speed_ci95"]
+    if lo <= c <= hi and fit["r2"] >= rules.min_r2 and ci is not None and ci[0] > 0:
         return "propagating"
     return "southward" if c < 0 else "not propagating"
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import requests
 
-ONI_PAGE = "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php"
+ONI_PAGE = "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v6/"  # ERSST v6
 
 
 def parse_oni(text: str) -> list[dict]:

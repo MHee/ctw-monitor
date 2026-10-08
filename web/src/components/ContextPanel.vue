@@ -5,7 +5,7 @@ import { computed } from 'vue'
 
 const props = defineProps({ context: { type: Object, required: true } })
 const oni = computed(() => props.context.oni)
-const sign = (v) => (v > 0 ? '+' : '') + v.toFixed(2)
+const sign = (v) => (v > 0 ? '+' : '') + v.toFixed(1)   // NOAA publishes one decimal
 </script>
 
 <template>
@@ -20,7 +20,7 @@ const sign = (v) => (v > 0 ? '+' : '') + v.toFixed(2)
     </p>
     <p class="panel-note">
       NOAA CPC Oceanic Niño Index: 3-month mean sea-surface temperature anomaly in the Niño 3.4
-      region of the equatorial Pacific, °C. Shown for context only; it says nothing by itself
+      region of the equatorial Pacific (ERSST v6), °C. Shown for context only; it says nothing by itself
       about sea level on this coast.
       <a :href="oni.info_url || oni.source_url" target="_blank" rel="noopener">NOAA CPC ONI table</a>
     </p>

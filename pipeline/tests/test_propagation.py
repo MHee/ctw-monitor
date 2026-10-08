@@ -115,3 +115,26 @@ def test_parse_oni():
     rows = parse_oni(" SEAS  YR   TOTAL   ANOM\n JJA 2026  29.09   1.80\n JAS 2026  29.12   2.16\n")
     assert rows[-1] == {"season": "JAS", "year": 2026, "total_c": 29.12, "anomaly_c": 2.16}
     assert len(rows) == 2
+
+
+def test_speed_is_unbiased_under_timing_noise():
+    """Time is regressed on distance: day-scale timing scatter must not bias the speed low."""
+    from ctw_monitor.process.propagation import Extremum, fit_chain
+    rng = np.random.default_rng(5)
+    dist = {f"g{i}": 150.0 * i for i in range(17)}
+    t0 = pd.Timestamp("2026-05-17", tz="UTC")
+    speeds = []
+    for _ in range(400):
+        chain = [Extremum(k, t0 + pd.Timedelta(days=x / (3.0 * 86.4) + rng.normal(0, 1.0)), -10, 10)
+                 for k, x in dist.items()]
+        speeds.append(fit_chain(chain, dist)["speed_m_s"])
+    assert abs(np.median(speeds) - 3.0) < 0.15
+
+
+def test_no_finite_bound_when_timing_is_flat():
+    from ctw_monitor.process.propagation import Extremum, fit_chain
+    t0 = pd.Timestamp("2026-01-01", tz="UTC")
+    hours = [0, 7, -5, 3, -8, 6]
+    chain = [Extremum(f"g{i}", t0 + pd.Timedelta(hours=h), -10, 10) for i, h in enumerate(hours)]
+    f = fit_chain(chain, {f"g{i}": 300.0 * i for i in range(6)})
+    assert f["speed_ci95"] is None and classify(f) in ("not propagating", "southward")
