@@ -101,6 +101,10 @@ Defaults accepted by Martin on 2026-10-08, from a test on 399 days of live data
 6. **Propagating** means 1 ≤ speed ≤ 10 m/s, r² ≥ 0.7, and a lower 95 % bound > 0.
    Anything else is "not propagating". A negative speed is labelled "southward".
 7. **Major** means a median prominence ≥ 15 cm (about 11 events a year, the top 15 %).
+8. Both segments use the same rules (Martin, 2026-10-08). The Mexico segment therefore
+   shows no events until the IOC gauges up to Puerto Vallarta have enough history.
+9. The events table shows non-propagating events **greyed out**, never hidden. They are
+   labelled "southward" when the speed is negative, otherwise "not propagating".
 
 Evidence, 2025-09 to 2026-10: the 17 May 2026 minimum gives 3.1–3.2 m/s, r² 0.86, 17
 gauges, under all 24 combinations of prominence 2–5 cm, separation 3–7 d and window
