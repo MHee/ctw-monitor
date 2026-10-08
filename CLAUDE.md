@@ -103,6 +103,9 @@ ruff check pipeline
 cd web; npm run dev; npm run build; npx vitest run
 ```
 
+To look at the web app with the live site's data: `python scripts/preview_live.py`, then
+build and `npx vite preview` (project skill `preview-live` in `.claude/skills/`).
+
 ## Code conventions
 
 - Keep the nightly install to the core dependencies in `pipeline/pyproject.toml`. New
