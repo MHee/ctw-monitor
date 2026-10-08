@@ -145,9 +145,23 @@ def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None) -
 
     def work(st):
         code, sensor = st["provider_id"], st.get("sensor", "rad")
+        failed_chunks = []
 
         def fetch(a, b):
-            raw = md.ioc_sea_level(code, a, b)
+            # one 10-day request at a time with a pause: from GitHub runners, IOC dropped
+            # connections part-way through a 400-day pull with 4 workers (2026-10-08). A chunk
+            # that still fails after the vendor's retries is skipped, not fatal for the station.
+            parts = []
+            for x, y in _chunks(a, b, 10):
+                time.sleep(1.0)
+                try:
+                    parts.append(md.ioc_sea_level(code, x, y))
+                except requests.RequestException:
+                    failed_chunks.append(x.strftime("%Y-%m-%d"))
+            parts = [p for p in parts if not p.empty]
+            if not parts:
+                return pd.Series(dtype=float)
+            raw = pd.concat(parts)
             raw = raw[raw["sensor"] == sensor]
             if raw.empty:
                 return pd.Series(dtype=float)
@@ -159,10 +173,12 @@ def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None) -
             return md.ioc_hourly(raw, sensor, min_samples=min_n, to_cm=True)
 
         sl = cache.get("ioc", st["id"], start, end, fetch)
-        return sl, None, {"provider": "IOC SLSMF", "provider_id": code, "sensor": sensor,
-                          "not_qc": True}
+        meta = {"provider": "IOC SLSMF", "provider_id": code, "sensor": sensor, "not_qc": True}
+        if failed_chunks:
+            meta["failed_chunks"] = failed_chunks
+        return sl, None, meta
 
-    return _run("ioc_slsmf", stations, work)
+    return _run("ioc_slsmf", stations, work, workers=2)
 
 
 def fetch_uhslc(stations: list[dict], start, end, cache: RawCache | None = None) -> SourceResult:
