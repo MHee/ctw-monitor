@@ -5,7 +5,6 @@ a banner. Never deploy synthetic data to the public site.
 """
 from __future__ import annotations
 
-from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -13,8 +12,8 @@ import pandas as pd
 
 from . import SCHEMA_VERSION, __version__
 from .config import alongshore_km, enabled, load_config
-from .process.grid import hovmoller
-from .products.writer import grid_product, iso, timeseries_product, write_json
+from .products.sealevel import hovmoller_product, stations_product
+from .products.writer import iso, timeseries_product, write_json
 
 SPEED_M_S = 3.0
 
@@ -53,14 +52,8 @@ def make_synthetic(out_dir: Path | str, end: str = "2026-10-01", days: int = 400
     proc = "SYNTHETIC: invented poleward pulses at 3.0 m/s plus noise; 6-hourly"
     write_json(timeseries_product("sealevel_anomaly", "cm", proc, idx, sl, meta), out / "sealevel.json")
 
-    # Grid at 50 km and 12 h keeps hovmoller.json small (subtidal signal; 3 m/s = 259 km/day)
-    grid_km = np.arange(round(x0, -1), max(dist.values()) + 50, 50.0)
-    gap = cfg["coastal_path"]["gap_mask_km"]
-    sub = slice(None, None, 2)
-    H = hovmoller({k: v[sub] for k, v in sl.items()}, dist, grid_km, gap_km=gap)
-    xs = np.array(sorted(dist.values()))
-    mask = [[float(a), float(b)] for a, b in pairwise(xs) if b - a > 2 * gap]
-    write_json(grid_product(proc + "; grid 50 km x 12 h", idx[sub], grid_km, H, mask), out / "hovmoller.json")
+    write_json(hovmoller_product(sl, idx, dist, cfg["coastal_path"]["gap_mask_km"], proc),
+               out / "hovmoller.json")
 
     # NEPTUNE section: rise decreasing with depth (2026 ratios), basin-referenced
     bp = {}
@@ -87,15 +80,7 @@ def make_synthetic(out_dir: Path | str, end: str = "2026-10-01", days: int = 400
          "label": "SYNTHETIC test pulse", "propagating": True}]}
     write_json(events, out / "events.json")
 
-    stations = {"schema_version": SCHEMA_VERSION, "stations": (
-        [{"id": g["id"], "name": g["name"], "kind": "tide_gauge", "provider": g["provider"],
-          "lat": g["lat"], "lon": g["lon"], "alongshore_km": dist[g["id"]]} for g in gauges]
-        + [{"id": b["id"], "name": b["location_code"], "kind": "bottom_pressure",
-            "provider": "onc", "lat": b["lat"], "lon": b["lon"], "depth_m": b["depth_m"]}
-           for b in enabled(cfg["bottom_pressure"])]
-        + [{"id": c["id"], "name": c["location_code"], "kind": "ctd", "provider": "onc",
-            "lat": c["lat"], "lon": c["lon"], "depth_m": c["depth_m"]} for c in cfg["temperature"]])}
-    write_json(stations, out / "stations.json")
+    write_json(stations_product(cfg, dist), out / "stations.json")
 
     now = iso(idx[-1])
     manifest = {

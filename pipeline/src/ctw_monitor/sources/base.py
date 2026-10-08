@@ -12,6 +12,7 @@ class SourceResult:
     series: dict[str, pd.Series] = field(default_factory=dict)
     air_pressure_hpa: dict[str, pd.Series] = field(default_factory=dict)
     errors: dict[str, str] = field(default_factory=dict)   # station id -> message
+    meta: dict[str, dict] = field(default_factory=dict)    # station id -> notes for the product
 
     @property
     def last_observation(self):

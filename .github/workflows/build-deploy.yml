@@ -58,6 +58,14 @@ jobs:
           key: raw-${{ github.run_id }}
           restore-keys: raw-
 
+      - name: Download frozen tidal constants (rule 5)
+        if: env.SOURCE == 'pipeline'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release download tides-latest --pattern tidal_constants.json --dir .cache --clobber
+          || echo "::warning::no tidal constants release asset; gauges use a window harmonic fit"
+
       - name: Fetch last good products from the live site
         if: env.SOURCE == 'pipeline'
         run: python -m ctw_monitor.cli pull-last-good --site "$SITE_URL" --out .cache/last_good || true
@@ -68,7 +76,7 @@ jobs:
           ONC_API_TOKEN: ${{ secrets.ONC_API_TOKEN }}
         run: >
           python -m ctw_monitor.cli build --out web/public/data --cache .cache/raw
-          --last-good .cache/last_good ${{ inputs.full_rebuild && '--full' || '' }}
+          --tides .cache/tidal_constants.json --last-good .cache/last_good ${{ inputs.full_rebuild && '--full' || '' }}
 
       - name: Use products uploaded by local mode
         if: env.SOURCE == 'release'

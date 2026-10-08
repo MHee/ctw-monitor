@@ -6,17 +6,31 @@ functions are in `pipeline/src/ctw_monitor/vendor/ctw_analysis.py`.
 
 ## Tide gauges
 
-1. Hourly series (`hourly_height` at NOAA, `SIXTY_MINUTES` at CHS, hourly means of IOC
-   1-min data, UHSLC fast-delivery hourly).
-2. Despike (`despike_detide`, 6 × MAD, 3 iterations).
-3. Detide with frozen constants (refitted monthly from ≥ 1 year; UTide for the refit).
-4. **IB correction** (`ib_correct`): add 1 cm per hPa of (p − mean p). Pressure source
-   per station: station barometer → nearest met station → ERA5. Gauges without any
-   pressure are shown as "not IB-corrected".
+1. Hourly series, stamped at the centre of the averaging interval (hh:00): NOAA 6-min
+   `water_level` averaged over ±30 min (`hourly_height` is the verified product and lags
+   by weeks, so it cannot feed a nightly run); CHS `wlo` at `SIXTY_MINUTES`; IOC hourly
+   median of the raw samples over ±30 min (at least half the station's usual count);
+   UHSLC fast-delivery hourly.
+2. Despike: high-pass the residual from the frozen-constant tide prediction with a 25-h
+   running median and drop points beyond 6 × MAD (3 iterations). Without constants,
+   `despike_detide` with its window fit.
+3. Detide with frozen constants (`process/tides.py`): least squares on mean + trend +
+   21 constituents (no long-period tides), lunar nodal corrections in fit and prediction,
+   phases relative to J2000. Fitted from 2 years by `ctw-monitor tides-fit`, stored as the
+   Release asset `tides-latest/tidal_constants.json`. numpy only, so the nightly job needs
+   no extras. Gauges without constants fall back to a window fit (noted in `meta`).
+   Planned for M4: cross-check against UTide and refit monthly in a workflow.
+4. **IB correction** (`ib_correct`): add 0.9945 cm per hPa of (p − mean p). Pressure
+   source per station: the gauge's own barometer (all CO-OPS gauges here; CHS `ap1` at
+   Tofino, Winter Harbour, Prince Rupert) → the nearest gauge barometer within 250 km
+   (Port Renfrew, Bamfield, Pruth Bay). Gaps in the chosen record are filled from the
+   next-nearest barometers, offset by the median difference. Mexican and Central American
+   gauges are "not IB-corrected" until the weekly ERA5 job exists.
 5. Godin low-pass (24-24-25 h; `godin_lowpass`), gaps up to 12 h bridged.
 6. Anomaly: minus the station's day-of-year mean over the baseline period (proposal
    2013–2025, 31-day smoothing). Where a baseline is shorter (CHS online holdings start
-   about 2019), say so in `meta`.
+   about 2019), say so in `meta`. **Until the baselines exist (M4), minus the mean of the
+   400-day window**, so the seasonal cycle is still in the traces; the panel says so.
 7. Resample to 6-hourly for publication.
 
 ## Bottom pressure (NEPTUNE)
