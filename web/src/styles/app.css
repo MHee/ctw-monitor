@@ -29,3 +29,6 @@ table.events .verdict { white-space: nowrap; }
 .oni-value { display: flex; align-items: baseline; gap: .75rem; margin: .25rem 0; }
 .oni-number { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.oni-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+.oni-cell { min-width: 0; }
+.oni-name { font-weight: 600; color: var(--muted); }

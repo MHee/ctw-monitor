@@ -15,7 +15,7 @@ from .config import alongshore_km, enabled, load_config
 from .products.events import events_product
 from .products.sealevel import hovmoller_product, stations_product
 from .products.writer import iso, timeseries_product, write_json
-from .sources.context import ONI_PAGE
+from .sources.context import ONI_PAGE, RONI_PAGE
 
 SPEED_M_S = 3.0
 
@@ -82,11 +82,17 @@ def make_synthetic(out_dir: Path | str, end: str = "2026-10-01", days: int = 400
 
     write_json(stations_product(cfg, dist), out / "stations.json")
 
-    write_json({"schema_version": SCHEMA_VERSION, "oni": {
-        "season": "JAS", "year": 2026, "anomaly_c": 1.5, "total_c": 28.5,
-        "source_url": cfg["context"]["oni_url"], "info_url": ONI_PAGE,
-        "recent": [{"season": s_, "year": 2026, "anomaly_c": a_} for s_, a_ in
-                   [("MAM", 0.2), ("AMJ", 0.5), ("MJJ", 0.9), ("JJA", 1.2), ("JAS", 1.5)]]}},
+    seasons = ["MAM", "AMJ", "MJJ", "JJA", "JAS"]
+    oni_vals, roni_vals = [0.2, 0.5, 0.9, 1.2, 1.5], [0.1, 0.3, 0.6, 0.9, 1.1]
+    write_json({"schema_version": SCHEMA_VERSION,
+                "oni": {"season": "JAS", "year": 2026, "anomaly_c": 1.5, "total_c": 28.5,
+                        "source_url": cfg["context"]["oni_url"], "info_url": ONI_PAGE,
+                        "recent": [{"season": s_, "year": 2026, "anomaly_c": a_}
+                                   for s_, a_ in zip(seasons, oni_vals)]},
+                "roni": {"season": "JAS", "year": 2026, "anomaly_c": 1.1,
+                         "source_url": cfg["context"]["roni_url"], "info_url": RONI_PAGE,
+                         "recent": [{"season": s_, "year": 2026, "anomaly_c": a_}
+                                    for s_, a_ in zip(seasons, roni_vals)]}},
                out / "context.json")
 
     now = iso(idx[-1])

@@ -7,7 +7,7 @@ const props = defineProps({ manifest: { type: Object, required: true } })
 const NAMES = {
   noaa_coops: 'NOAA CO-OPS tide gauges', chs_iwls: 'CHS tide gauges', ioc_slsmf: 'IOC tide gauges',
   uhslc_fast: 'UHSLC tide gauges', onc_bpr: 'ONC bottom pressure', onc_ctd: 'ONC CTD temperature',
-  noaa_oni: 'NOAA ONI (context)',
+  noaa_oni: 'NOAA ONI and RONI (context)',
 }
 const rows = computed(() => props.manifest.sources.map((s) => {
   const word = freshness(s)

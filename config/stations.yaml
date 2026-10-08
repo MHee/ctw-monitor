@@ -112,4 +112,5 @@ air_pressure:
   era5: {dataset: reanalysis-era5-single-levels, variable: mean_sea_level_pressure, latency_days: 5}
 
 context:
-  oni_url: "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt"
+  oni_url: "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt"     # ERSST v6 since 2026
+  roni_url: "https://www.cpc.ncep.noaa.gov/data/indices/RONI.ascii.txt"   # official ENSO index (NWS PIS 26-05)

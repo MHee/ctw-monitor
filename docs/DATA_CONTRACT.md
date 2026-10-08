@@ -1,4 +1,4 @@
-# Data contract (schema_version 0.3.0)
+# Data contract (schema_version 0.4.0)
 
 Everything the web app reads lives under `data/` on the site. Every file validates
 against a JSON Schema in `schema/`; CI validates the synthetic set and each nightly
@@ -13,7 +13,7 @@ build validates before deploying.
 | `bottom_pressure.json` | `timeseries.schema.json` | basin-referenced BPR anomalies, cm of water |
 | `temperature.json` | `timeseries.schema.json` | temperature anomalies, °C |
 | `events.json` | `events.schema.json` | detected extrema and along-coast speed fits |
-| `context.json` | `context.schema.json` | latest NOAA CPC ONI value (context only) |
+| `context.json` | `context.schema.json` | latest NOAA CPC ONI and RONI values (context only) |
 
 ## Conventions
 
@@ -31,7 +31,7 @@ build validates before deploying.
 
 ```json
 {
-  "schema_version": "0.3.0",
+  "schema_version": "0.4.0",
   "product": "sealevel_anomaly",
   "units": "cm",
   "processing": "Despiked, detided (frozen constants), IB-corrected, Godin low-pass, minus 2013–2025 day-of-year mean; 6-hourly",
@@ -63,3 +63,7 @@ value_cm, prominence_cm for each gauge). See docs/METHODS.md, "Events and speed"
 
 `context.json` (0.3.0) holds `oni`: `season` (for example `JAS`), `year`, `anomaly_c`,
 `total_c`, `recent` (the last 12 seasons), `source_url`, `info_url` and `fetched`.
+
+0.4.0 adds `roni` to `context.json`, with the same shape as `oni` but without `total_c`:
+the Relative ONI, NOAA's official ENSO index since 2026. An index that could not be
+refreshed keeps its last good value with `"stale": true`.
