@@ -36,6 +36,19 @@ CHUNK = pd.Timedelta(days=365)
 PRESSURE_NAMES = ["Seafloor Pressure", "AZA Seafloor Pressure", "Pressure"]
 PRESSURE_EXCLUDE = re.compile(r"raw|reference|uncompensated|compromised|residual", re.IGNORECASE)
 TEMPERATURE_NAMES = ["Temperature"]
+# ONC flags resampled values 7 ("averaged") even when absurd: CNE20 BPR_BC returned values
+# near -5000 dbar on several days (2018-2022), and a -551.88 degC CTD value has been seen.
+PRESSURE_SCREEN_DBAR = 20.0     # tides + drift stay within a few dbar of the median
+
+
+def screen_pressure(s: pd.Series) -> pd.Series:
+    """Drop seafloor-pressure values more than PRESSURE_SCREEN_DBAR from the median (dbar)."""
+    return s[(s - s.median()).abs() <= PRESSURE_SCREEN_DBAR] if not s.empty else s
+
+
+def screen_temperature(s: pd.Series) -> pd.Series:
+    """Drop temperatures outside the physically possible range for these sites (degC)."""
+    return s[(s > -2.5) & (s < 40.0)]
 
 
 KEYRING_SERVICE = "ctw-monitor"
@@ -220,7 +233,8 @@ def fetch_bottom_pressure(stations: list[dict], start, end, cache: RawCache | No
             s, m = _location_series(st, st.get("device_category", "BPR"), a, b,
                                     [st["sensor_name"]] if st.get("sensor_name") else PRESSURE_NAMES,
                                     PRESSURE_EXCLUDE,
-                                    lambda raw: hourly_centred(raw, min_count=3) * DBAR_TO_PA)
+                                    lambda raw: hourly_centred(screen_pressure(raw), min_count=3)
+                                    * DBAR_TO_PA)
             meta.update(m)
             return s
         s = cache.get("onc_bpr", st["id"], start, end, fetch)
@@ -238,7 +252,7 @@ def fetch_temperature(stations: list[dict], start, end, cache: RawCache | None =
 
         def fetch(a, b):
             s, m = _location_series(st, st.get("device_category", "CTD"), a, b, TEMPERATURE_NAMES,
-                                    None, lambda raw: raw.resample("1D").mean())
+                                    None, lambda raw: screen_temperature(raw).resample("1D").mean())
             meta.update(m)
             return s
         s = cache.get("onc_ctd", st["id"], start, end, fetch)

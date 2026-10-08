@@ -169,3 +169,11 @@ def test_build_bottom_pressure_and_temperature(tmp_path, monkeypatch):
     st3 = build.build_bottom_pressure(cfg, out2, start, now, RawCache(None), {}, tmp_path)
     assert st3["status"] == "stale" and FAKE not in st3["message"]
     assert (out2 / "bottom_pressure.json").exists()
+
+
+def test_screens_drop_absurd_values():
+    idx = pd.date_range("2026-01-01", periods=6, freq="15min", tz="UTC")
+    p = pd.Series([2689.5, 2689.6, -5113.2, 2689.7, 2711.0, 2689.4], idx)   # dbar
+    assert list(onc.screen_pressure(p).round(1)) == [2689.5, 2689.6, 2689.7, 2689.4]
+    t = pd.Series([3.1, -551.88, 3.2, 41.0, 3.0, 3.1], idx)                   # degC
+    assert list(onc.screen_temperature(t)) == [3.1, 3.2, 3.0, 3.1]

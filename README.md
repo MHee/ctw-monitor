@@ -1,14 +1,16 @@
 # Coastal-trapped wave monitor
 
+**Dashboard: <https://mhee.github.io/ctw-monitor/>** (personal prototype, rebuilt daily)
+
 A static web dashboard that tracks subtidal sea-level and bottom-pressure anomalies
 along the eastern Pacific margin, from Central America to British Columbia, and across
 the NEPTUNE slope off Vancouver Island. Its main panel is a distance–time
 (Hovmöller) diagram of the tide-gauge chain, the view in which a poleward-propagating
 coastal-trapped wave can be seen.
 
-**Status:** skeleton (October 2026). The pipeline runs end to end on synthetic sample
-data only. Real data fetching, processing and the chart panels are stubs, to be finished
-with Claude Code following [CLAUDE.md](CLAUDE.md).
+**Status:** prototype (October 2026). Sea level (M1) is live; NEPTUNE bottom pressure and
+slope temperature (M2) are in review. Events and status (M3) are still stubs. Built with
+Claude Code following [CLAUDE.md](CLAUDE.md).
 
 **What it is not:** an El Niño forecast. A coastal anomaly off BC is not by itself
 evidence that an equatorial signal has arrived. The page says so in a fixed banner.
