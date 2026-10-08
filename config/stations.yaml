@@ -1,0 +1,100 @@
+# Station configuration for the coastal-trapped wave monitor.
+# Coordinates: ONC locations API, CHS IWLS metadata, NOAA CO-OPS mdapi (2026-10-07);
+# Mexican/Central American gauges from the ne-pacific-margin-data skill table.
+# Order of tide_gauges = equatorward to poleward along the open coast.
+
+schema_version: "0.1.0"
+
+coastal_path:
+  # Waypoints the along-coast distance follows (0 km at Neah Bay, poleward positive).
+  # APPROXIMATE cape coordinates; check before M1. The path must stay at sea:
+  # a straight San Francisco - Crescent City line crosses land.
+  zero_at: neah_bay
+  waypoints:
+    - [Acajutla, 13.57, -89.84]
+    - [Puerto Chiapas, 14.70, -92.40]
+    - [Salina Cruz, 16.15, -95.20]
+    - [Puerto Angel, 15.65, -96.50]
+    - [Lazaro Cardenas, 17.92, -102.18]
+    - [Manzanillo, 19.05, -104.32]
+    - [Cabo Corrientes, 20.40, -105.70]
+    - [Cabo San Lucas, 22.88, -109.91]
+    - [Cabo San Lazaro, 24.80, -112.32]
+    - [Punta Eugenia, 27.85, -115.08]
+    - [Ensenada, 31.85, -116.62]
+    - [San Diego, 32.70, -117.25]
+    - [Point Conception, 34.45, -120.47]
+    - [Point Reyes, 38.00, -123.02]
+    - [Point Arena, 38.95, -123.74]
+    - [Cape Mendocino, 40.44, -124.41]
+    - [Cape Blanco, 42.84, -124.56]
+    - [Columbia River mouth, 46.25, -124.10]
+    - [Cape Flattery, 48.38, -124.73]
+    - [Estevan Point, 49.38, -126.54]
+    - [Cape Scott, 50.78, -128.43]
+    - [Cape St James, 51.93, -131.02]
+    - [Prince Rupert, 54.32, -130.33]
+  gap_mask_km: 150   # mask grid cells with no gauge within this distance
+
+tide_gauges:
+  - {id: acajutla, name: "Acajutla", provider: uhslc, provider_id: "82", lat: 13.574, lon: -89.837, pressure: era5}
+  - {id: puerto_san_jose, name: "Puerto San Jose", provider: ioc, provider_id: "prsj", lat: 13.922, lon: -90.801, sensor: rad, pressure: era5, note: "bat channel is battery, not sea level"}
+  - {id: champerico, name: "Champerico", provider: ioc, provider_id: "prch", lat: 14.297, lon: -91.916, sensor: rad, enabled: false, note: "failed QC in 2026"}
+  - {id: puerto_chiapas, name: "Puerto Chiapas", provider: ioc, provider_id: "chia", lat: 14.712, lon: -92.401, sensor: rad, pressure: era5}
+  - {id: salina_cruz, name: "Salina Cruz", provider: ioc, provider_id: "sali", lat: 16.168, lon: -95.197, sensor: flt, pressure: era5}
+  - {id: huatulco, name: "Huatulco", provider: ioc, provider_id: "huat2", lat: 15.75, lon: -96.117, sensor: rad, pressure: era5}
+  - {id: puerto_angel, name: "Puerto Angel", provider: ioc, provider_id: "ptan", lat: 15.665, lon: -96.492, sensor: rad, pressure: era5}
+  - {id: zihuatanejo, name: "Zihuatanejo", provider: ioc, provider_id: "zihu2", lat: 17.636, lon: -101.558, sensor: rad, pressure: era5}
+  - {id: lazaro_cardenas, name: "Lazaro Cardenas", provider: ioc, provider_id: "laza2", lat: 17.94, lon: -102.178, sensor: rad, pressure: era5}
+  - {id: manzanillo, name: "Manzanillo", provider: ioc, provider_id: "mnza", lat: 19.061, lon: -104.301, sensor: rad, pressure: era5}
+  - {id: puerto_vallarta, name: "Puerto Vallarta", provider: ioc, provider_id: "puer2", lat: 20.658, lon: -105.243, sensor: rad, pressure: era5}
+  - {id: la_paz, name: "La Paz", provider: ioc, provider_id: "lpaz2", lat: 24.267, lon: -110.333, sensor: rad, enabled: false, note: "inside Gulf of California"}
+  - {id: san_diego, name: "San Diego", provider: noaa_coops, provider_id: "9410170", lat: 32.7156, lon: -117.1767, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: la_jolla, name: "La Jolla", provider: noaa_coops, provider_id: "9410230", lat: 32.8669, lon: -117.2571, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: san_francisco, name: "San Francisco", provider: noaa_coops, provider_id: "9414290", lat: 37.8063, lon: -122.4659, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: point_reyes, name: "Point Reyes", provider: noaa_coops, provider_id: "9415020", lat: 37.9942, lon: -122.9736, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: arena_cove, name: "Arena Cove", provider: noaa_coops, provider_id: "9416841", lat: 38.9146, lon: -123.7111, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: north_spit, name: "North Spit", provider: noaa_coops, provider_id: "9418767", lat: 40.7669, lon: -124.2173, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: crescent_city, name: "Crescent City", provider: noaa_coops, provider_id: "9419750", lat: 41.7456, lon: -124.1844, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: port_orford, name: "Port Orford", provider: noaa_coops, provider_id: "9431647", lat: 42.739, lon: -124.4983, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: south_beach, name: "South Beach", provider: noaa_coops, provider_id: "9435380", lat: 44.6254, lon: -124.0449, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: toke_point, name: "Toke Point", provider: noaa_coops, provider_id: "9440910", lat: 46.7075, lon: -123.9669, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: neah_bay, name: "Neah Bay", provider: noaa_coops, provider_id: "9443090", lat: 48.3707, lon: -124.6016, pressure: station, check: "confirm CO-OPS barometer"}
+  - {id: port_renfrew, name: "Port Renfrew", provider: chs_iwls, provider_id: "5cebf1e23d0f4a073c4bc060", lat: 48.555, lon: -124.421, chs_code: "08525", pressure: eccc}
+  - {id: bamfield, name: "Bamfield", provider: chs_iwls, provider_id: "5cebf1e23d0f4a073c4bc062", lat: 48.836, lon: -125.136, chs_code: "08545", pressure: eccc}
+  - {id: tofino, name: "Tofino", provider: chs_iwls, provider_id: "5cebf1e23d0f4a073c4bc07c", lat: 49.154, lon: -125.913, chs_code: "08615", pressure: station}
+  - {id: winter_harbour, name: "Winter Harbour", provider: chs_iwls, provider_id: "5cebf1e23d0f4a073c4bc097", lat: 50.513, lon: -128.029, chs_code: "08735", pressure: station}
+  - {id: prince_rupert, name: "Prince Rupert", provider: chs_iwls, provider_id: "5cebf1de3d0f4a073c4bba06", lat: 54.317, lon: -130.324, chs_code: "09354", pressure: station}
+
+bottom_pressure:
+  # role: section = plotted; basin_ref = averaged into the Cascadia Basin reference
+  - {id: fgpd, location_code: FGPD, device_code: "NRCANBPR05", role: section, lat: 48.813808, lon: -125.280581, depth_m: 96, note: "shelf, Folger Deep"}
+  - {id: ncbc, location_code: NCBC, device_code: "RBRQUARTZ3BPR202320", role: section, lat: 48.427313, lon: -126.174546, depth_m: 397, note: "upper slope; GNSSA-05 co-located"}
+  - {id: nc89, location_code: NC89, device_code: "RBRQUARTZ3BPR203659", role: section, lat: 48.670626, lon: -126.848013, depth_m: 1257, note: "mid slope; GNSSA-03 4.9 km away"}
+  - {id: cne20, location_code: CNE20, device_code: "TBD", role: basin_ref, lat: 47.906259, lon: -127.620651, depth_m: 2642, note: "Cascadia Basin; find device code via discovery"}
+  - {id: cbc27, location_code: CBC27, device_code: "TBD (CORK-1027C seafloor)", role: basin_ref, lat: 47.756367, lon: -127.731742, depth_m: 2660, note: "Cascadia Basin CORK; dep-1 900 s timestamps 3564 s early (2014-2017)"}
+  - {id: cbc27_apt, fdsn: "NV.CBC27.Z1.MDD", role: basin_ref, enabled: false, lat: 47.756367, lon: -127.731742, depth_m: 2660, note: "RBR APT via EarthScope FDSN, 5 Hz, counts/50 = Pa; needs obspy"}
+  - {id: cqs64, location_code: CQS64, role: basin_ref, enabled: false, lat: 48.699937, lon: -126.872152, depth_m: 1329, note: "excluded: Seafloor Pressure is the 156 mbsf screen since 2012"}
+  - {id: nc27, location_code: NC27, role: basin_ref, enabled: false, lat: 47.762605, lon: -127.758637, depth_m: 2658, note: "CORK-1026 seafloor gauge stopped 2026-07-14"}
+
+temperature:
+  - {id: fgppn_ctd, location_code: FGPPN, device_category: CTD, lat: 48.808292, lon: -125.2815, depth_m: 25, note: ""}
+  - {id: ncbc_ctd, location_code: NCBC, device_category: CTD, lat: 48.427313, lon: -126.174546, depth_m: 397, note: "SBECTD19p7035"}
+  - {id: bacnd_ctd, location_code: BACND, device_category: CTD, lat: 48.345656, lon: -126.157925, depth_m: 644, note: ""}
+  - {id: bachy_ctd, location_code: BACHY, device_category: CTD, lat: 48.312074, lon: -126.065841, depth_m: 871, note: ""}
+  - {id: bacme_ctd, location_code: BACME, device_category: CTD, lat: 48.314899, lon: -126.058282, depth_m: 895, note: ""}
+  - {id: bacax_ctd, location_code: BACAX, device_category: CTD, lat: 48.316653, lon: -126.050494, depth_m: 984, note: ""}
+  - {id: nc89_ctd, location_code: NC89, device_category: CTD, lat: 48.670626, lon: -126.848013, depth_m: 1257, note: "SBECTD19p7033; salinity bad in 2026, temperature fine"}
+  - {id: nc27_ctd, location_code: NC27, device_category: CTD, lat: 47.762605, lon: -127.758637, depth_m: 2658, note: ""}
+
+air_pressure:
+  # IB pressure sources other than the gauge's own barometer
+  eccc_climate_hourly:   # api.weather.gc.ca, collection climate-hourly, CLIMATE_IDENTIFIER
+    - {id: tofino_a, climate_id: "1038210"}
+    - {id: estevan_point, climate_id: "1032731"}
+    - {id: solander_island, climate_id: "1037553"}
+  chs_ap1: [tofino, winter_harbour, prince_rupert]
+  era5: {dataset: reanalysis-era5-single-levels, variable: mean_sea_level_pressure, latency_days: 5}
+
+context:
+  oni_url: "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt"

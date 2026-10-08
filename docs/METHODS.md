@@ -1,0 +1,75 @@
+# Methods
+
+The processing follows the ONC internal report on the May–June 2026 coastal-trapped
+event (v015, October 2026) and the `coastal-trapped-wave-analysis` skill, whose
+functions are in `pipeline/src/ctw_monitor/vendor/ctw_analysis.py`.
+
+## Tide gauges
+
+1. Hourly series (`hourly_height` at NOAA, `SIXTY_MINUTES` at CHS, hourly means of IOC
+   1-min data, UHSLC fast-delivery hourly).
+2. Despike (`despike_detide`, 6 × MAD, 3 iterations).
+3. Detide with frozen constants (refitted monthly from ≥ 1 year; UTide for the refit).
+4. **IB correction** (`ib_correct`): add 1 cm per hPa of (p − mean p). Pressure source
+   per station: station barometer → nearest met station → ERA5. Gauges without any
+   pressure are shown as "not IB-corrected".
+5. Godin low-pass (24-24-25 h; `godin_lowpass`), gaps up to 12 h bridged.
+6. Anomaly: minus the station's day-of-year mean over the baseline period (proposal
+   2013–2025, 31-day smoothing). Where a baseline is shorter (CHS online holdings start
+   about 2019), say so in `meta`.
+7. Resample to 6-hourly for publication.
+
+## Bottom pressure (NEPTUNE)
+
+1. Hourly means from ONC (`resamplePeriod=3600`); Pa throughout.
+2. Detide with frozen constants.
+3. **No IB correction.**
+4. Subtract the Cascadia Basin reference: mean of CNE20, CBC27 (CORK-1027C) and, if
+   added, the CBC27 APT. This removes basin-scale ocean mass and common-mode signals.
+5. Drift: removed by the basin reference only to the extent that drifts are similar;
+   they are not. Open decision for M2: an exponential + linear drift fit per
+   deployment (the `onc-pressure-drift-tides` method), refitted with the tidal
+   constants, versus a high-pass at 120 days. Never let a drift fit run over the most
+   recent 60 days alone.
+6. Godin low-pass, convert Pa to cm with ρg = 1025 × 9.81 (≈ 100.6 Pa/cm), 6-hourly.
+
+Reference values from the 2026 event (22 May–1 Jun rise): FGPD 1334 Pa, NCBC 1000 Pa,
+NC89 488 Pa, Cascadia Basin 216 Pa.
+
+## Temperature
+
+Daily means from the CTDs at FGPPN, NCBC, BACND, BACHY, BACME, BACAX, NC89 and NC27;
+anomaly against the day-of-year mean (NC89 has 15 years); also report the anomaly in
+standard deviations. The 2026 event warmed the 646–983 m Barkley CTDs by about
+0.28–0.30 °C (isotherms about 90–130 m deeper).
+
+## Along-coast distance and the distance–time grid
+
+Distance is cumulative great-circle distance along a waypoint path that follows the
+open coast (`config/stations.yaml`, `coastal_path`), not a straight line: from
+Central America to Cabo Corrientes, across the Gulf of California mouth to Cabo San
+Lucas, up Baja California, then San Diego, Point Conception, Point Reyes, Point Arena,
+Cape Mendocino, Cape Blanco, Cape Flattery (0 km at Neah Bay), Vancouver Island and
+Prince Rupert. Each gauge is projected onto the path. The grid interpolates linearly
+in distance between neighbouring gauges and masks spans with no gauge within 150 km.
+
+## Events and speed
+
+1. Find extrema of the 6-hourly anomaly at each gauge with prominence ≥ 3 cm and
+   separation ≥ 5 days.
+2. Associate extrema across gauges within a moving ±10-day window.
+3. Fit time against distance (`propagation_fit`); report speed with 95 % CI, n
+   stations and r². Use the timing of extrema; do not use lag correlation.
+4. Flag events whose fitted speed is outside 1–10 m/s or whose r² < 0.6 as
+   "not propagating".
+
+The 2026 reference: minima-timing speed 3.1 m/s (San Francisco and Crescent City 3
+days before Neah Bay); Mexican pulse 1.95 ± 0.20 m/s (Acajutla 3 May to Puerto Vallarta
+13 May), not traceable north of Puerto Vallarta for lack of Baja gauges.
+
+## Wording on the page
+
+Say "coastal-trapped wave"; quote "Kelvin wave" only from media or forecasts. State
+that a coastal anomaly is not by itself evidence of an equatorial origin, and that
+wind forcing along the US West Coast explained most of the BC signal in 2026
+(63–76 % in the ERA5-forced model).

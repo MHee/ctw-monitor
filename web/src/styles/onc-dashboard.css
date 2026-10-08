@@ -1,0 +1,140 @@
+/* ============================================================
+   ONC Dashboard theme — drop-in for Vue/Vite (or plain HTML) data apps
+   such as onc_dts_dashboard. Replaces a project's src/style.css.
+   Requires onc-brand.css next to it (tokens + fonts + base type).
+
+   Keeps the generic variable names the DTS dashboard components already
+   use (--bg --panel --border --text --muted --accent --ok --warn --error)
+   so existing scoped styles re-skin without edits.
+
+   Surfaces:
+     light — page #F4F6F8, panels white, chrome (header/status/footer) Deep Blue
+     dark  — page + panels black, chrome Deep Blue. Charts sit on BLACK, not
+             on Deep Blue: most series colours fall below 3:1 on #123253.
+   ============================================================ */
+@import url('./onc-brand.css');
+
+:root {
+  --bg:        #F4F6F8;
+  --panel:     #FFFFFF;
+  --border:    #B1B3B6;   /* decorative panel edge */
+  --input-border: #636466;/* 5.9:1 — form controls need >=3:1 */
+  --text:      #000000;
+  --muted:     #636466;   /* 5.92:1 on white */
+  --accent:    #2E6BA1;   /* text-safe accent in light (5.62:1) */
+  --rule:      #129DC0;   /* ONC Blue: rules, focus, large type only */
+  --chrome:    #123253;
+  --on-chrome: #FFFFFF;
+  --on-chrome-muted: #B1B3B6;
+  /* status pills (bg / fg), all >= 5.8:1 */
+  --ok-bg:#91CDC1;    --ok-fg:#183E37;
+  --warn-bg:#FFD17C;  --warn-fg:#123253;
+  --error-bg:#B83726; --error-fg:#FFFFFF;
+  /* status as text on the panel surface */
+  --ok:    #183E37;
+  --warn:  #9A6427;   /* 4.97:1 */
+  --error: #B83726;   /* 5.81:1 */
+  --grid:  #E1E3E6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#000000; --panel:#000000; --border:#414042; --input-border:#B1B3B6;
+    --text:#FFFFFF; --muted:#B1B3B6; --accent:#87BBE5; --rule:#129DC0;
+    --chrome:#123253; --on-chrome:#FFFFFF; --on-chrome-muted:#B1B3B6;
+    --ok-bg:#91CDC1; --ok-fg:#000000; --warn-bg:#FDB917; --warn-fg:#000000;
+    --error-bg:#E78B88; --error-fg:#000000;
+    --ok:#91CDC1; --warn:#FDB917; --error:#E78B88; --grid:#2A2A2B;
+  }
+}
+[data-theme="dark"] {
+  --bg:#000000; --panel:#000000; --border:#414042; --input-border:#B1B3B6;
+  --text:#FFFFFF; --muted:#B1B3B6; --accent:#87BBE5; --rule:#129DC0;
+  --chrome:#123253; --on-chrome:#FFFFFF; --on-chrome-muted:#B1B3B6;
+  --ok-bg:#91CDC1; --ok-fg:#000000; --warn-bg:#FDB917; --warn-fg:#000000;
+  --error-bg:#E78B88; --error-fg:#000000;
+  --ok:#91CDC1; --warn:#FDB917; --error:#E78B88; --grid:#2A2A2B;
+}
+
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+body { font-family: var(--onc-font-body); font-size: 0.9375rem; line-height: 1.5; }
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; display: flex; flex-direction: column; gap: 1rem; padding: 1rem;
+       width: 100%; max-width: 1800px; margin: 0 auto; }
+a { color: var(--accent); }
+
+/* ---- App chrome ---------------------------------------- */
+.onc-app-header {
+  background: var(--chrome); color: var(--on-chrome);
+  display: flex; align-items: center; gap: 1.25rem;
+  padding: .75rem 1.25rem; border-bottom: 3px solid var(--rule);
+}
+.onc-app-header img.onc-logo { height: 56px; min-width: 55px; width: auto; }   /* >= 55px digital min */
+.onc-app-header .onc-app-title { display: flex; flex-direction: column; gap: .1rem; }
+.onc-app-header h1 {
+  margin: 0; color: var(--on-chrome); font-family: var(--onc-font-display);
+  font-weight: 600; font-size: 1.5rem; line-height: 1.1;
+}
+.onc-app-header .onc-app-subtitle { color: var(--on-chrome-muted); font-size: .875rem; }
+.onc-app-header .onc-spacer { flex: 1; }
+.onc-app-header a, .onc-app-header button.secondary { color: var(--on-chrome); }
+.onc-app-header button.secondary { border-color: rgba(255,255,255,.55); }
+
+.onc-app-footer {
+  background: var(--chrome); color: var(--on-chrome); font-size: .8125rem;
+  padding: .9rem 1.25rem; display: flex; flex-wrap: wrap; gap: .5rem 1.5rem;
+  align-items: baseline;
+}
+.onc-app-footer a { color: #87BBE5; }
+.onc-app-footer .onc-uvic {
+  font-family: var(--onc-font-display); font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ---- Panels -------------------------------------------- */
+.panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 0; padding: 1rem;
+}
+.panel > h2, .panel-title {
+  font-family: var(--onc-font-display); font-weight: 600; font-size: 1.125rem;
+  color: var(--text); margin: -.25rem 0 .75rem; padding-top: .5rem;
+  border-top: 3px solid var(--rule); display: inline-block;
+}
+.muted { color: var(--muted); }
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1rem; }
+
+/* Status bar lives in the chrome colour so live state is always prominent */
+.panel.status-bar { background: var(--chrome); color: var(--on-chrome); border-color: var(--chrome); }
+.panel.status-bar .muted { color: var(--on-chrome-muted); }
+.pill { display: inline-block; padding: .1rem .55rem; font-weight: 700; font-size: .8125rem;
+        font-family: var(--onc-font-display); letter-spacing: .03em; }
+.pill.ok    { background: var(--ok-bg);    color: var(--ok-fg); }
+.pill.warn, .pill.stale { background: var(--warn-bg); color: var(--warn-fg); }
+.pill.error, .pill.fault { background: var(--error-bg); color: var(--error-fg); }
+
+.panel.error { border-color: var(--error); color: var(--error); }
+
+/* ---- Controls ------------------------------------------ */
+input, select, button, textarea { font-family: inherit; font-size: .9375rem; }
+button {
+  cursor: pointer; background: var(--chrome); color: #FFFFFF;
+  border: 2px solid var(--chrome); border-radius: 0; padding: .45rem 1rem;
+  font-family: var(--onc-font-display); font-weight: 600; letter-spacing: .01em;
+}
+[data-theme="dark"] button:not(.secondary) { background: #129DC0; border-color: #129DC0; color: #000000; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) button:not(.secondary) { background:#129DC0; border-color:#129DC0; color:#000000; }
+}
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.secondary { background: transparent; color: var(--text); border: 2px solid var(--input-border); }
+input[type='text'], input[type='password'], input[type='number'], input[type='datetime-local'], select, textarea {
+  background: var(--panel); color: var(--text); border: 1px solid var(--input-border);
+  border-radius: 0; padding: .45rem .6rem;
+}
+:focus-visible { outline: 3px solid var(--rule); outline-offset: 2px; }
+label { font-size: .875rem; color: var(--muted); }
+
+/* ---- Map ----------------------------------------------- */
+.maplibregl-popup-content { background: var(--panel); color: var(--text);
+  border-radius: 0; font-family: var(--onc-font-body); }
+.maplibregl-ctrl-attrib { font-size: 11px; }

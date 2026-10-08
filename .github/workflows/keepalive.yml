@@ -1,0 +1,28 @@
+# OPTIONAL (disabled until the decision in CLAUDE.md is made): GitHub disables scheduled
+# workflows in public repositories after 60 days without activity. This makes one tiny
+# commit to .github/keepalive only when main has been quiet for 45 days (~8 commits/year).
+name: Keepalive
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    if: false            # remove this line to enable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 1 }
+      - run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          if [ $(( (now - last) / 86400 )) -ge 45 ]; then
+            date -u +%Y-%m-%dT%H:%M:%SZ > .github/keepalive
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .github/keepalive && git commit -m "keepalive" && git push
+          fi

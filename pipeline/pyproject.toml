@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctw-monitor"
+version = "0.1.0"
+description = "Data pipeline for the coastal-trapped wave monitor"
+requires-python = ">=3.12"
+# Core = everything the NIGHTLY GitHub Actions run needs. Keep it this small.
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "scipy>=1.13",        # find_peaks for events, bandpass/r_critical in vendor/ctw_analysis
+  "requests>=2.31",
+  "pyyaml>=6.0",
+  "jsonschema>=4.21",   # products are validated before every deploy
+]
+
+[project.optional-dependencies]
+tides = ["utide>=0.3"]                 # monthly tidal-constant refit only
+era5  = ["xarray>=2024.1", "netCDF4"]  # weekly ERA5 IB / wind forcing only
+apt   = ["obspy>=1.4"]                 # optional CBC27 APT from EarthScope FDSN
+dev   = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+ctw-monitor = "ctw_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["src/ctw_monitor/vendor"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

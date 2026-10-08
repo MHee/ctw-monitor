@@ -1,0 +1,250 @@
+/* ============================================================
+   ONC Brand Stylesheet  —  Ocean Networks Canada
+   Derived from "Brand Identity & Guidelines / Staff Toolkit",
+   March 2025 (Digital Version), plus oceannetworks.ca.
+   Questions / approvals: onc-design@oceannetworks.ca
+   ============================================================
+   Light + dark themes. Dark mode follows the OS by default and
+   can be forced with <html data-theme="light|dark">.
+   Every default text/background pair below is >= WCAG 2 AA
+   (4.5:1) for body copy; pairs that are AA-large only (3:1)
+   are marked and restricted to >=24px or >=19px bold.
+   ============================================================ */
+
+/* Rajdhani = headlines/titles/subheads. Open Sans = subheads/body.
+   Both are Google-hosted, as on oceannetworks.ca. For projects
+   containing Indigenous-language characters, swap Open Sans for
+   BC Sans (see reference.md). */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&display=swap');
+
+:root {
+  /* ---- Brand colours: primary (page 12) ---------------- */
+  --onc-blue:        #129DC0;   /* signature accent — NEVER a dominant fill */
+  --onc-deep-blue:   #123253;   /* workhorse dark; predominant with white  */
+  --onc-black:       #000000;
+  --onc-white:       #FFFFFF;
+
+  /* ---- Brand colours: secondary pure (page 13) --------- */
+  --onc-red:         #B83726;
+  --onc-orange:      #CE712F;
+  --onc-yellow:      #FDB917;
+  --onc-olive:       #7A8033;
+  --onc-teal:        #4FAD99;
+  --onc-mid-blue:    #2E6BA1;
+  --onc-purple:      #701261;
+  --onc-grey:        #636466;
+
+  /* ---- Secondary tints (Appendix 1) — UI/graphics only -- */
+  --onc-red-tint:    #E78B88;
+  --onc-orange-tint: #F2B26B;
+  --onc-yellow-tint: #FFD17C;
+  --onc-olive-tint:  #B8C057;
+  --onc-teal-tint:   #91CDC1;
+  --onc-blue-tint:   #87BBE5;
+  --onc-purple-tint: #C292BA;
+  --onc-grey-tint:   #B1B3B6;
+
+  /* ---- Secondary shades (Appendix 1) ------------------- */
+  --onc-red-shade:    #731913;
+  --onc-orange-shade: #763A19;
+  --onc-yellow-shade: #9A6427;
+  --onc-olive-shade:  #3E461E;
+  --onc-teal-shade:   #183E37;
+  --onc-blue-shade:   #123253;  /* identical to Deep Blue */
+  --onc-purple-shade: #371B36;
+  --onc-grey-shade:   #414042;
+
+  /* ---- Type ------------------------------------------- */
+  --onc-font-display: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+  --onc-font-body:    'Open Sans', 'BC Sans', system-ui, sans-serif;
+  --onc-fs-body:      1.0625rem;   /* 17px — WCAG-comfortable floor */
+  --onc-lh-body:      1.6;
+  --onc-lh-display:   1.15;
+  --onc-measure:      68ch;        /* max line length for body copy */
+
+  /* ---- Layout ----------------------------------------- */
+  --onc-radius: 0px;               /* brand is square-cornered */
+  --onc-rule:   3px;               /* the ONC section rule weight */
+  --onc-gap:    clamp(1rem, 2.5vw, 2rem);
+  --onc-logo-min: 55px;            /* digital logo minimum (page 9) */
+
+  /* ==== LIGHT THEME (default) =========================== */
+  --onc-bg:          #FFFFFF;
+  --onc-bg-elevated: #F4F6F8;      /* derived neutral, not a brand colour */
+  --onc-bg-invert:   #123253;
+  --onc-text:        #000000;                  /* 21.0:1 on white  */
+  --onc-text-muted:  #636466;                  /*  5.92:1 on white */
+  --onc-heading:     #123253;                  /* 13.07:1 on white */
+  --onc-link:        #2E6BA1;                  /*  5.62:1 on white */
+  --onc-link-hover:  #123253;
+  --onc-accent:      #129DC0;      /* rules, icons, >=24px type only */
+  --onc-accent-text: #2E6BA1;      /* use when ONC Blue would be small type */
+  --onc-border:      #B1B3B6;
+  --onc-focus:       #129DC0;
+  --onc-on-invert:   #FFFFFF;                  /* 13.07:1 on Deep Blue */
+  --onc-shadow:      0 1px 3px rgba(18,50,83,.16);
+}
+
+/* ==== DARK THEME ======================================== */
+/* Black page, Deep Blue as the elevated surface. This keeps the
+   guide's "predominant Deep Blue, ONC Blue as accent" logic and
+   uses two combinations the guide itself certifies as accessible
+   (#000000/#129DC0 and #123253/white). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --onc-bg:          #000000;
+    --onc-bg-elevated: #123253;
+    --onc-bg-invert:   #FFFFFF;
+    --onc-text:        #FFFFFF;                /* 21.0:1 on black       */
+    --onc-text-muted:  #B1B3B6;                /*  9.99:1 on black      */
+    --onc-heading:     #FFFFFF;
+    --onc-link:        #87BBE5;                /* 10.27:1 / 6.39:1      */
+    --onc-link-hover:  #129DC0;
+    --onc-accent:      #129DC0;                /*  6.61:1 on black      */
+    --onc-accent-text: #129DC0;                /* AA on black; large-only on Deep Blue */
+    --onc-border:      #414042;
+    --onc-focus:       #FDB917;
+    --onc-on-invert:   #123253;
+    --onc-shadow:      none;
+  }
+}
+[data-theme="dark"] {
+  --onc-bg:          #000000;
+  --onc-bg-elevated: #123253;
+  --onc-bg-invert:   #FFFFFF;
+  --onc-text:        #FFFFFF;
+  --onc-text-muted:  #B1B3B6;
+  --onc-heading:     #FFFFFF;
+  --onc-link:        #87BBE5;
+  --onc-link-hover:  #129DC0;
+  --onc-accent:      #129DC0;
+  --onc-accent-text: #129DC0;
+  --onc-border:      #414042;
+  --onc-focus:       #FDB917;
+  --onc-on-invert:   #123253;
+  --onc-shadow:      none;
+}
+
+/* ---- Base ---------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: light dark; }
+[data-theme="light"] { color-scheme: light; }
+[data-theme="dark"]  { color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: var(--onc-bg);
+  color: var(--onc-text);
+  font-family: var(--onc-font-body);
+  font-size: var(--onc-fs-body);
+  line-height: var(--onc-lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .onc-display {
+  font-family: var(--onc-font-display);
+  color: var(--onc-heading);
+  line-height: var(--onc-lh-display);
+  font-weight: 600;
+  letter-spacing: .005em;
+  margin: 0 0 .5em;
+  text-wrap: balance;
+}
+/* Sentence case in external-facing headlines; UPPERCASE is reserved
+   for the logo, VENUS and NEPTUNE (page 17). */
+h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); font-weight: 700; }
+h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+h3 { font-size: clamp(1.2rem, 2vw, 1.5rem); font-weight: 500; }
+p, li { max-width: var(--onc-measure); }
+
+a { color: var(--onc-link); text-decoration-thickness: .08em; text-underline-offset: .18em; }
+a:hover, a:focus-visible { color: var(--onc-link-hover); }
+:focus-visible { outline: 3px solid var(--onc-focus); outline-offset: 2px; }
+
+strong { font-weight: 700; }
+small, .onc-caption { font-size: .8125rem; color: var(--onc-text-muted); max-width: 60ch; }
+hr, .onc-rule {
+  border: 0; height: var(--onc-rule); width: 4.5rem;
+  background: var(--onc-accent); margin: 0 0 1.25rem;
+}
+.onc-rule--full { width: 100%; }
+
+/* ---- Layout -------------------------------------------- */
+.onc-wrap { width: min(72rem, 100% - 2 * var(--onc-gap)); margin-inline: auto; }
+.onc-section { padding: clamp(2.5rem, 6vw, 5rem) 0; }
+.onc-section--invert { background: var(--onc-bg-invert); color: var(--onc-on-invert); }
+.onc-section--invert h1, .onc-section--invert h2,
+.onc-section--invert h3 { color: var(--onc-on-invert); }
+.onc-grid { display: grid; gap: var(--onc-gap); grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); }
+
+/* ---- Header / logo ------------------------------------- */
+/* The logo is artwork, never type. Place the official SVG/PNG from
+   Alfresco in <img class="onc-logo">; do not typeset it in Rajdhani,
+   recolour it, box it, rotate it or add effects (page 10). */
+.onc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--onc-gap); padding: 1rem 0;
+  border-bottom: 1px solid var(--onc-border);
+}
+.onc-logo { display: block; width: auto; height: 64px; min-width: var(--onc-logo-min); }
+.onc-logo-clearspace { padding: calc(var(--onc-logo-min) * .35); } /* >= 1X clear space */
+.onc-nav { display: flex; gap: 1.25rem; font-family: var(--onc-font-display); font-weight: 600; }
+.onc-nav a { text-decoration: none; }
+
+/* ---- Buttons ------------------------------------------- */
+.onc-btn {
+  display: inline-block; font-family: var(--onc-font-display); font-weight: 600;
+  font-size: 1.0625rem; padding: .7em 1.4em; border: 2px solid transparent;
+  border-radius: var(--onc-radius); cursor: pointer; text-decoration: none;
+}
+.onc-btn--primary   { background: var(--onc-deep-blue); color: #FFFFFF; }       /* 13.07:1 */
+.onc-btn--primary:hover { background: #0B2340; color: #FFFFFF; }
+.onc-btn--accent    { background: var(--onc-blue); color: #000000; }           /* 6.61:1  */
+.onc-btn--ghost     { background: transparent; color: var(--onc-link); border-color: currentColor; }
+
+/* ---- Cards / callouts ---------------------------------- */
+.onc-card {
+  background: var(--onc-bg-elevated); color: var(--onc-text);
+  border: 1px solid var(--onc-border); border-top: var(--onc-rule) solid var(--onc-accent);
+  padding: 1.5rem; box-shadow: var(--onc-shadow);
+}
+.onc-card h3 { color: var(--onc-heading); }
+.onc-callout { border-left: var(--onc-rule) solid var(--onc-accent); padding: .25rem 0 .25rem 1.25rem; }
+
+/* ---- Tables / data ------------------------------------- */
+.onc-table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+.onc-table th {
+  font-family: var(--onc-font-display); font-weight: 600; text-align: left;
+  background: var(--onc-deep-blue); color: #FFFFFF; padding: .6rem .75rem;
+}
+.onc-table td { padding: .6rem .75rem; border-bottom: 1px solid var(--onc-border); }
+
+/* ---- Footer: relationship statement is mandatory ------- */
+.onc-footer {
+  background: var(--onc-deep-blue); color: #FFFFFF;
+  padding: clamp(2rem, 4vw, 3rem) 0; font-size: .9375rem;
+}
+.onc-footer a { color: var(--onc-blue-tint); }
+.onc-uvic {
+  font-family: var(--onc-font-display); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; font-size: .8125rem;
+}
+.onc-tagline { font-family: var(--onc-font-display); font-weight: 500; }
+.onc-land-ack { font-size: .875rem; max-width: 80ch; opacity: .95; }
+
+/* ---- Theme toggle -------------------------------------- */
+.onc-theme-toggle {
+  font-family: var(--onc-font-display); font-weight: 600; font-size: .9375rem;
+  background: transparent; color: var(--onc-text); border: 2px solid var(--onc-border);
+  padding: .4em .9em; cursor: pointer;
+}
+
+/* ---- Data-visualisation series (secondary pure) -------- */
+.onc-series-1 { color: #2E6BA1; } .onc-series-2 { color: #CE712F; }
+.onc-series-3 { color: #4FAD99; } .onc-series-4 { color: #701261; }
+.onc-series-5 { color: #FDB917; } .onc-series-6 { color: #B83726; }
+.onc-series-7 { color: #7A8033; } .onc-series-8 { color: #636466; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

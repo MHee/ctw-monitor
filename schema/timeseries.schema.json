@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "regular time series product",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "product",
+    "units",
+    "processing",
+    "t0",
+    "dt_s",
+    "n",
+    "stations",
+    "values"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^0\\.\\d+\\.\\d+$"
+    },
+    "product": {
+      "type": "string"
+    },
+    "units": {
+      "enum": [
+        "cm",
+        "Pa",
+        "degC"
+      ]
+    },
+    "processing": {
+      "type": "string",
+      "minLength": 10
+    },
+    "t0": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "dt_s": {
+      "type": "integer",
+      "minimum": 60
+    },
+    "n": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "meta": {
+      "type": "object"
+    }
+  }
+}

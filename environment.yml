@@ -1,0 +1,16 @@
+# Local development environment (lean; mirrors the nightly CI install).
+# Optional extras when needed:  pip install -e "pipeline[tides]"  /  "[era5]"  /  "[apt]"
+name: ctw-monitor
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scipy
+  - requests
+  - pyyaml
+  - jsonschema
+  - pytest
+  - ruff
+  - nodejs=22
+  - pip

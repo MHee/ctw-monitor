@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stations.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "stations"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^0\\.\\d+\\.\\d+$"
+    },
+    "stations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "provider",
+          "lat",
+          "lon"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "tide_gauge",
+              "bottom_pressure",
+              "ctd"
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lon": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "depth_m": {
+            "type": "number"
+          },
+          "alongshore_km": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}
