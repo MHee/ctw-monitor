@@ -148,18 +148,26 @@ def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None,
     """From GitHub runners IOC is slow and drops connections: a cold 400-day pull failed with
     4 workers and then ran past the 60-min job limit with 2 (2026-10-08). So: 10-day requests
     newest first with a short timeout, a time budget for the whole source, and the raw cache
-    backfills older chunks on later nights. A chunk that still fails is skipped."""
+    backfills older chunks on later nights. A chunk that still fails is skipped.
+
+    Each station also gets an equal share of the budget (budget / stations): with one
+    shared deadline the first stations in the config spent it all on backfill and the last
+    four never started (2026-10-08). The newest chunk of each request ignores the share, so
+    every station gets its recent data while the whole-source budget lasts."""
     cache = cache or RawCache(None)
+    workers = 2
     deadline = time.monotonic() + budget_s
+    share_s = budget_s / max(1, len(stations))      # conservative: ignores the parallel workers
 
     def work(st):
         code, sensor = st["provider_id"], st.get("sensor", "rad")
         failed_chunks, skipped = [], []
+        st_deadline = min(deadline, time.monotonic() + share_s)
 
         def fetch(a, b):
             parts = []
-            for x, y in reversed(_chunks(a, b, 10)):
-                if time.monotonic() > deadline:
+            for i, (x, y) in enumerate(reversed(_chunks(a, b, 10))):
+                if time.monotonic() > (deadline if i == 0 else st_deadline):
                     skipped.append(y.strftime("%Y-%m-%d"))
                     break
                 time.sleep(1.0)
@@ -189,7 +197,7 @@ def fetch_ioc(stations: list[dict], start, end, cache: RawCache | None = None,
             meta["time_budget_reached_before"] = skipped[0]   # older data come on later nights
         return sl, None, meta
 
-    return _run("ioc_slsmf", stations, work, workers=2)
+    return _run("ioc_slsmf", stations, work, workers=workers)
 
 
 def fetch_uhslc(stations: list[dict], start, end, cache: RawCache | None = None) -> SourceResult:

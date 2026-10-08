@@ -203,3 +203,30 @@ def test_ioc_time_budget_keeps_newest_chunks(monkeypatch):
     assert len(calls) < 10                                   # stopped by the budget
     assert r.series["acajutla"].index.max() >= end - pd.Timedelta(hours=2)
     assert "time_budget_reached_before" in r.meta["acajutla"]
+
+
+def test_ioc_budget_is_shared_fairly_between_stations(monkeypatch):
+    """The last stations in the config must not be starved by backfill of the first ones."""
+    import threading
+
+    from ctw_monitor.sources import tide_gauges as tg
+    lock, now = threading.Lock(), [0]
+
+    def tick():
+        with lock:
+            now[0] += 100                                   # each clock read "takes" 100 s
+            return now[0]
+
+    def fake_ioc(code, a, b, **kw):
+        idx = pd.date_range(a, b, freq="1min", inclusive="left")
+        return pd.DataFrame({"sensor": "rad", "slevel": 1.0}, index=idx)
+
+    monkeypatch.setattr(tg.md, "ioc_sea_level", fake_ioc)
+    monkeypatch.setattr(tg.time, "sleep", lambda s: None)
+    monkeypatch.setattr(tg.time, "monotonic", tick)
+    end = pd.Timestamp("2026-10-01", tz="UTC")
+    sts = [{"id": f"s{i}", "provider_id": f"c{i}", "sensor": "rad"} for i in range(8)]
+    r = tg.fetch_ioc(sts, end - pd.Timedelta(days=400), end, budget_s=6000)
+    assert set(r.series) == {st["id"] for st in sts}         # nobody starved
+    for sid, sl in r.series.items():
+        assert sl.index.max() >= end - pd.Timedelta(hours=2), sid
