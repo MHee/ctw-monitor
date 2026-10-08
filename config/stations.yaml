@@ -83,7 +83,7 @@ bottom_pressure:
   # role: section = plotted; basin_ref = averaged into the Cascadia Basin reference.
   # Devices are found at run time from /deployments (location_code + device_category, default
   # BPR), so swaps need no config change; device codes below are the 2026-10 devices, for reference.
-  - {id: fgpd, location_code: FGPD, role: section, device_2026: NRCANBPR05, lat: 48.813808, lon: -125.280581, depth_m: 96, note: "shelf, Folger Deep"}
+  - {id: fgpd, location_code: FGPD, role: section, device_2026: NRCANBPR05, drift_fit_from: "2021-07-01", lat: 48.813808, lon: -125.280581, depth_m: 96, note: "shelf, Folger Deep; level step of ~15 cm in 2020-21, so the drift fit starts after it; all channels stopped 2026-07-16 (telemetry)"}
   - {id: ncbc, location_code: NCBC, role: section, device_2026: RBRQUARTZ3BPR202320, lat: 48.427313, lon: -126.174546, depth_m: 397, note: "upper slope; GNSSA-05 co-located"}
   - {id: nc89, location_code: NC89, role: section, device_2026: RBRQUARTZ3BPR203659, lat: 48.670626, lon: -126.848013, depth_m: 1257, note: "mid slope; GNSSA-03 4.9 km away"}
   - {id: cne20, location_code: CNE20, role: basin_ref, lat: 47.906259, lon: -127.620651, depth_m: 2642, note: "Cascadia Basin BPR"}

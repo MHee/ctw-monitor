@@ -48,6 +48,13 @@ def load_constants(path: Path | str | None) -> dict:
     return d.get("stations", {})
 
 
+def load_drift(path: Path | str | None) -> dict:
+    """Station id -> frozen bottom-pressure drift model (tides-fit output), or {}."""
+    if not path or not Path(path).exists():
+        return {}
+    return json.loads(Path(path).read_text(encoding="utf-8")).get("drift", {})
+
+
 def _last_good_series(last_good_dir, product: str) -> tuple[dict[str, pd.Series], dict]:
     """6-hourly series and meta from a previously deployed timeseries product."""
     if not last_good_dir or not (Path(last_good_dir) / product).exists():
@@ -88,7 +95,8 @@ def _fallback(product: str, out: Path, last_good_dir, status: dict) -> None:
         status["status"] = "stale"
 
 
-def build_bottom_pressure(cfg, out: Path, start, now, cache, constants, last_good_dir=None) -> dict:
+def build_bottom_pressure(cfg, out: Path, start, now, cache, constants, last_good_dir=None,
+                          drift_models=None) -> dict:
     sts = [b for b in enabled(cfg["bottom_pressure"]) if b.get("location_code")]
     r, status = fetch_source("onc_bpr", onc.fetch_bottom_pressure, sts, start, now, cache)
     product = "bottom_pressure.json"
@@ -100,8 +108,9 @@ def build_bottom_pressure(cfg, out: Path, start, now, cache, constants, last_goo
     section = [b["id"] for b in sts if b.get("role") == "section"]
     refs = [b["id"] for b in sts if b.get("role") == "basin_ref"]
     try:
+        devices = {k: v["devices"][-1]["deviceCode"] for k, v in r.meta.items() if v.get("devices")}
         series, m = bottom_pressure_chain({k: s.reindex(hourly) for k, s in r.series.items()},
-                                          constants, section, refs)
+                                          constants, section, refs, drift_models, devices)
     except ValueError as e:                       # no basin reference: rule 4 forbids writing
         status.update(status="failed", message=f"no basin reference: {e}"[:300])
         _fallback(product, out, last_good_dir, status)
@@ -120,8 +129,12 @@ def build_bottom_pressure(cfg, out: Path, start, now, cache, constants, last_goo
     codes = {b["id"]: b["location_code"] for b in sts}
     used = ", ".join(codes[k] for k in m[next(iter(values))]["basin_reference"])
     days = round((now - start) / pd.Timedelta(days=1))
+    frozen = [k for k in values if str(meta[k].get("drift", "")).startswith("frozen")]
+    drift_note = ("instrument drift removed (frozen per-deployment fit)" if len(frozen) == len(values)
+                  else f"instrument drift removed (frozen fit at {len(frozen)} of {len(values)} "
+                       f"gauges, linear over the window elsewhere)")
     proc = (f"Seafloor pressure, hourly, detided (frozen tidal constants), minus the Cascadia Basin "
-            f"reference ({used}), linear drift removed, Godin low-pass, minus the {days}-day mean; "
+            f"reference ({used}), {drift_note}, Godin low-pass, minus the {days}-day mean; "
             f"cm of water (100.6 Pa/cm); not IB-corrected; 6-hourly")
     write_json(timeseries_product("bottom_pressure_anomaly", "cm", proc, idx6, values, meta),
                out / product)
@@ -234,9 +247,11 @@ def run_build(out_dir, cache_dir=".cache/raw", last_good_dir=None, full=False, d
     start = now - pd.Timedelta(days=days)
     cache = RawCache(cache_dir, full=full)
     constants = load_constants(tides_path)
+    drift_models = load_drift(tides_path)
     log(f"tidal constants: {len(constants)} stations from {tides_path}")
     statuses = build_sealevel(cfg, out, start, now, cache, constants, last_good_dir)
-    statuses.append(build_bottom_pressure(cfg, out, start, now, cache, constants, last_good_dir))
+    statuses.append(build_bottom_pressure(cfg, out, start, now, cache, constants, last_good_dir,
+                                          drift_models))
     statuses.append(build_temperature(cfg, out, start, now, cache, last_good_dir))
     manifest = {
         "schema_version": SCHEMA_VERSION, "generated_at": iso(now), "synthetic": False,

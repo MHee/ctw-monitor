@@ -46,12 +46,16 @@ functions are in `pipeline/src/ctw_monitor/vendor/ctw_analysis.py`.
    added, the CBC27 APT, each de-meaned. This removes basin-scale ocean mass and
    common-mode signals. Without any basin gauge the product is not written (last good
    is kept).
-5. Drift: removed by the basin reference only to the extent that drifts are similar;
-   they are not. **Interim (M2): a straight line fitted over the 400-day window is
-   removed** from each basin-referenced series. Still open: an exponential + linear
-   drift fit per deployment (the `onc-pressure-drift-tides` method), refitted with the
-   tidal constants, versus a high-pass at 120 days. Never let a drift fit run over the
-   most recent 60 days alone.
+5. Drift (decided 2026-10-08, method B): `a + b·t + c·exp(−t/τ)` per deployment, fitted by
+   `tides-fit` to the basin-referenced daily record of the whole current deployment
+   (detided hourly values, days with ≥ 20 h), τ by scan, **the last 60 days left out**,
+   then frozen in `tidal_constants.json` and extrapolated nightly. A gauge's fit can start
+   later (`drift_fit_from`; FGPD after its ~15 cm step in 2020–21). If the deployed device
+   differs from the fitted one, or a deployment has under 180 days, the nightly falls back
+   to a straight line over the window and says so in `meta`. Compared with a linear fit
+   over the window, a 120-day high-pass and none, B revised recent values least (0.31 cm
+   mean against 1.37 cm) and tracked Bamfield/Tofino sea level best (r = 0.88); the
+   high-pass removed the real seasonal signal (r = 0.61).
 6. Godin low-pass, minus the window mean, 6-hourly.
 
 Reference values from the 2026 event (22 May–1 Jun rise): FGPD 1334 Pa, NCBC 1000 Pa,

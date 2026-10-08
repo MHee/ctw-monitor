@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from ..vendor import ctw_analysis as ca
-from . import tides
+from . import drift, tides
 
 RHO_G = 1025.0 * 9.81          # Pa per m of water
 PA_PER_CM = RHO_G / 100.0      # ~100.6 Pa per cm
@@ -139,15 +139,21 @@ def remove_linear_drift(s: pd.Series) -> pd.Series:
 
 
 def bottom_pressure_chain(pressure_pa: dict[str, pd.Series], constants: dict,
-                          section_ids: list[str], ref_ids: list[str]
+                          section_ids: list[str], ref_ids: list[str],
+                          drift_models: dict[str, dict] | None = None,
+                          devices: dict[str, str] | None = None,
                           ) -> tuple[dict[str, pd.Series], dict[str, dict]]:
     """Hourly seafloor pressure (Pa, common hourly index) -> hourly low-passed, basin-referenced
     anomaly in cm of water for each section gauge.
 
     Pa -> cm of water (rho g) -> despike + detide -> minus the basin reference (rule 4: mean of
-    the de-meaned basin gauges, before filtering) -> linear drift removed -> Godin -> minus
-    window mean. Never IB-corrected (rule 2): a BPR already sees only the departure from the
-    inverse-barometer response."""
+    the de-meaned basin gauges, before filtering) -> drift removed -> Godin -> minus window
+    mean. Never IB-corrected (rule 2): a BPR already sees only the departure from the
+    inverse-barometer response.
+
+    Drift: the frozen per-deployment model (process/drift.py) when one exists for the device
+    now deployed; otherwise a straight line over the window, and meta says which."""
+    drift_models, devices = drift_models or {}, devices or {}
     detided, meta = {}, {}
     for k, s in pressure_pa.items():
         detided[k], meta[k] = detide(s / PA_PER_CM, constants.get(k))
@@ -157,7 +163,15 @@ def bottom_pressure_chain(pressure_pa: dict[str, pd.Series], constants: dict,
     for k in section_ids:
         if k not in detided or detided[k].isna().all():
             continue
-        x = remove_linear_drift(detided[k] - detided[k].mean() - ref)
+        x = detided[k] - detided[k].mean() - ref
+        model = drift_models.get(k)
+        if model and model.get("deviceCode") == devices.get(k):
+            x = x - drift.evaluate(model, x.index)
+            how = (f"frozen exp + linear fit ({model['fit_from']} to {model['fit_to']}, "
+                   f"{model['slope_cm_per_yr']} cm/yr)")
+        else:
+            x = remove_linear_drift(x)
+            how = "linear over window (no frozen drift model for this device)"
         out[k] = anomaly_doy(godin(x), None)
-        meta[k] |= {"basin_reference": refs, "drift": "linear over window"}
+        meta[k] |= {"basin_reference": refs, "drift": how}
     return out, meta

@@ -177,3 +177,37 @@ def test_screens_drop_absurd_values():
     assert list(onc.screen_pressure(p).round(1)) == [2689.5, 2689.6, 2689.7, 2689.4]
     t = pd.Series([3.1, -551.88, 3.2, 41.0, 3.0, 3.1], idx)                   # degC
     assert list(onc.screen_temperature(t)) == [3.1, 3.2, 3.0, 3.1]
+
+
+def test_drift_fit_recovers_exp_linear_and_skips_recent_days():
+    from ctw_monitor.process import drift
+    t0 = pd.Timestamp("2023-07-15", tz="UTC")
+    idx = pd.date_range(t0, periods=1100, freq="1D")
+    t = np.arange(idx.size, dtype=float)
+    truth = 2.0 + 0.02 * t + 9.0 * np.exp(-t / 290.0)
+    rng = np.random.default_rng(4)
+    s = pd.Series(truth + rng.normal(0, 0.3, idx.size), idx)
+    s.iloc[-60:] += 50.0                                   # the last 60 days must not count
+    m = drift.fit(s, t0, idx[-1] + pd.Timedelta(days=1))
+    assert m["slope_cm_per_yr"] == pytest.approx(0.02 * 365.25, rel=0.1)
+    assert m["tau_days"] == pytest.approx(290, rel=0.35)
+    ev = drift.evaluate(m, idx[:-60])
+    assert np.sqrt(np.mean((ev - truth[:-60]) ** 2)) < 0.3
+    with pytest.raises(ValueError):
+        drift.fit(s.iloc[:200], t0, idx[200])               # under MIN_DAYS after exclusion
+
+
+def test_chain_uses_frozen_drift_only_for_matching_device():
+    idx = pd.date_range("2026-01-01", periods=24 * 90, freq="1h", tz="UTC")
+    td = np.arange(idx.size) / 24.0
+    model = {"t0": "2026-01-01T00:00:00Z", "a_cm": 0.0, "b_cm_per_day": 0.1, "c_cm": 0.0,
+             "tau_days": 100.0, "fit_from": "2025-01-01", "fit_to": "2025-12-31",
+             "slope_cm_per_yr": 36.5, "deviceCode": "DEV1"}
+    flat = pd.Series(4.0e6, idx)
+    pa = {"cne20": flat * 0 + 2.7e7, "ncbc": flat + (0.1 * td + np.sin(td / 3)) * steps.PA_PER_CM}
+    out, meta = steps.bottom_pressure_chain(pa, {}, ["ncbc"], ["cne20"], {"ncbc": model}, {"ncbc": "DEV1"})
+    assert meta["ncbc"]["drift"].startswith("frozen")
+    _, meta2 = steps.bottom_pressure_chain(pa, {}, ["ncbc"], ["cne20"], {"ncbc": model}, {"ncbc": "DEV2"})
+    assert meta2["ncbc"]["drift"].startswith("linear")
+    ok = out["ncbc"].notna()
+    assert abs(np.polyfit(td[ok.to_numpy()], out["ncbc"][ok].to_numpy(), 1)[0]) < 0.01  # trend gone

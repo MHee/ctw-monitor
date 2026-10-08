@@ -243,6 +243,20 @@ def fetch_bottom_pressure(stations: list[dict], start, end, cache: RawCache | No
     return _run("onc_bpr", stations, work)
 
 
+def deployment_history(st: dict, end) -> tuple[pd.Series, str, pd.Timestamp]:
+    """Hourly seafloor pressure (Pa) over the whole current deployment at a station, for
+    fitting the drift model. Returns (series, deviceCode, deployment begin)."""
+    deps = deployments(st["location_code"], st.get("device_category", "BPR"),
+                       pd.Timestamp("2005-01-01", tz="UTC"), end)
+    if not deps:
+        raise RuntimeError(f"no deployment at {st['location_code']}")
+    cur = deps[-1]
+    names = [st["sensor_name"]] if st.get("sensor_name") else PRESSURE_NAMES
+    raw, _ = device_series(cur["deviceCode"], cur["begin"], cur["end"], names, PRESSURE_EXCLUDE)
+    s = hourly_centred(screen_pressure(raw), min_count=3) * DBAR_TO_PA
+    return s, cur["deviceCode"], cur["begin"]
+
+
 def fetch_temperature(stations: list[dict], start, end, cache: RawCache | None = None) -> SourceResult:
     """Daily mean seawater temperature (degC) per CTD location."""
     cache = cache or RawCache(None)
